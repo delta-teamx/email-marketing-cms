@@ -90,7 +90,19 @@ export async function processInboundReply(inboundMessageId: string): Promise<voi
     replyBody: inbound.body_text ?? '',
   });
 
-  const decision = await decide(classification, lead as LeadRow & Record<string, any>, campaign);
+  // Booking a meeting emails the prospect a calendar invite, so the agent may
+  // only do it when this action would be allowed to auto-send.
+  const canAutoAct =
+    campaign.mode === 'full_auto' &&
+    classification.confidence >= Number(campaign.confidence_threshold) &&
+    (campaign.auto_categories as string[]).includes(classification.category);
+
+  const decision = await decide(
+    classification,
+    lead as LeadRow & Record<string, any>,
+    campaign,
+    canAutoAct,
+  );
 
   // Safety-critical state changes happen immediately, approval-gated or not.
   if (classification.category === 'dnc') {
@@ -173,6 +185,7 @@ async function decide(
   cls: ReplyClassification,
   lead: LeadRow & Record<string, any>,
   campaign: Record<string, any>,
+  allowBooking: boolean,
 ): Promise<AgentDecision> {
   const templateCategory = toTemplateCategory(cls.category);
   const ctx = mergeContextForLead(lead);
@@ -228,7 +241,7 @@ async function decide(
   if (cls.category === 'interested') {
     // Meeting flow: if the prospect proposed a concrete free time, book it
     // and send a mechanical confirmation instead of the template.
-    if (cls.meeting_intent) {
+    if (cls.meeting_intent && allowBooking) {
       const parsed = parseProposedTimes(cls.proposed_times);
       const tz = lead.custom_fields?.timezone ?? campaign.timezone;
       for (const t of parsed) {
