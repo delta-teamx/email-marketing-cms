@@ -1,0 +1,20 @@
+{
+  "name": "email-marketing-cms",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Implenix — landing site (implenix.net) and AI email marketing dashboard (marketing.implenix.net)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:landing": "npm run dev -w apps/landing",
+    "dev:dashboard": "npm run dev -w apps/dashboard"
+  }
+}
