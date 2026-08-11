@@ -1,0 +1,23 @@
+# Netlify configuration for marketing.implenix.net (the campaign dashboard).
+#
+# This app lives inside a npm-workspaces monorepo, so in the Netlify site
+# settings set the *base directory* to `apps/dashboard` — Netlify then picks up
+# this file, installs from the repo root, and builds only this workspace:
+#
+#   Base directory:  apps/dashboard
+#   Build command:   cd ../.. && npm install && npm run build -w apps/dashboard
+#   Publish dir:     dist
+#
+# Remember to add VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY and VITE_API_URL
+# as environment variables in the Netlify UI.
+
+[build]
+  command = "cd ../.. && npm install && npm run build -w apps/dashboard"
+  publish = "dist"
+
+# Single-page app: serve index.html for every route so React Router can
+# handle /campaigns/:id, /inbox, /suppression, etc. on hard refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
