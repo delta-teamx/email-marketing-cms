@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Papa from 'papaparse';
+import type { ParseResult } from 'papaparse';
 import { isValidEmail, normalizeEmail } from '@implenix/shared';
 import { fetchAllPages, supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/toast';
@@ -74,10 +75,10 @@ export function LeadsTab({ campaign }: Props) {
   const onFile = (file: File | null) => {
     if (!file) return;
     setReport(null);
-    Papa.parse<Record<string, string>>(file, {
+    Papa.parse(file, {
       header: true,
       skipEmptyLines: 'greedy',
-      complete: (result) => {
+      complete: (result: ParseResult<Record<string, string>>) => {
         const headers = (result.meta.fields ?? []).filter((h) => h.trim() !== '');
         if (headers.length === 0 || result.data.length === 0) {
           toast('error', 'That CSV appears to be empty or has no header row.');
@@ -98,7 +99,7 @@ export function LeadsTab({ campaign }: Props) {
         }
         setMapping(initial);
       },
-      error: (err) => {
+      error: (err: Error) => {
         toast('error', `Could not parse CSV: ${err.message}`);
         resetImporter();
       },

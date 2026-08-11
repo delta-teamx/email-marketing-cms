@@ -30,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadWorkspace = useCallback(async () => {
-    setWorkspaceLoading(true);
     setWorkspaceError(null);
     const { data, error } = await supabase
       .from('workspace_members')
@@ -81,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: row.workspaces?.name ?? 'My workspace',
       });
     }
-    setWorkspaceLoading(false);
   }, []);
 
   const userId = session?.user.id ?? null;
@@ -93,8 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  // Stay in the loading state while signed in but before the workspace fetch
+  // has resolved (either into a workspace or an error).
   const loading =
-    !sessionReady || (session !== null && workspace === null && workspaceLoading);
+    !sessionReady || (session !== null && workspace === null && workspaceError === null);
 
   return (
     <AuthContext.Provider
