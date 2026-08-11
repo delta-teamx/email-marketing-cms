@@ -1,0 +1,76 @@
+---
+import Logo from './Logo.astro';
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a href="/" class="site-header__brand" aria-label="Implenix — home">
+      <Logo />
+    </a>
+
+    <nav aria-label="Main">
+      <ul class="site-header__nav">
+        <li><a href="/#services">Services</a></li>
+        <li><a href="/#how-it-works">How it works</a></li>
+        <li><a href="/#faq">FAQ</a></li>
+      </ul>
+    </nav>
+
+    <a href="/book" class="btn btn--primary site-header__cta">Book a call</a>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 4.25rem;
+  }
+
+  .site-header__brand {
+    text-decoration: none;
+    margin-right: auto;
+  }
+
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .site-header__nav a {
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 550;
+    font-size: 0.97rem;
+  }
+
+  .site-header__nav a:hover {
+    color: var(--teal-600);
+  }
+
+  .site-header__cta {
+    padding: 0.6rem 1.3rem;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 640px) {
+    .site-header__nav {
+      display: none;
+    }
+  }
+</style>

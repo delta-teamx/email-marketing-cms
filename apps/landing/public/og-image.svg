@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#081A33"/>
+  <rect x="80" y="140" width="24" height="60" rx="6" fill="#5D7B99"/>
+  <rect x="120" y="115" width="24" height="85" rx="6" fill="#8FB3CF"/>
+  <rect x="160" y="80" width="24" height="120" rx="6" fill="#0FA3A3"/>
+  <text x="80" y="330" font-family="-apple-system, 'Segoe UI', Arial, sans-serif" font-size="96" font-weight="800" fill="#FFFFFF">Implenix</text>
+  <text x="82" y="410" font-family="-apple-system, 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="500" fill="#8FB3CF">Medical billing for US practitioners</text>
+  <text x="82" y="470" font-family="-apple-system, 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="500" fill="#0FA3A3">Stop losing revenue to claim denials.</text>
+</svg>

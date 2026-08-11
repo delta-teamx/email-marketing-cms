@@ -1,0 +1,673 @@
+---
+/**
+ * Custom booking widget — plain TypeScript island, no framework.
+ *
+ * API contract (see packages/shared):
+ *   GET  {PUBLIC_API_URL}/api/booking/slots?date=YYYY-MM-DD&tz={IANA}
+ *        -> { slots: [{ start: ISO-UTC, end: ISO-UTC }] }
+ *   POST {PUBLIC_API_URL}/api/booking
+ *        JSON { start, name, email, phone?, practice?, specialty?, notes?, timezone }
+ *        -> 201 { id, start, end, meetLink } | 409 { error: "slot_taken" } | 400
+ *
+ * The API base URL is rendered server-side into a data attribute so the
+ * client script needs no bundler-specific env handling.
+ */
+const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080';
+---
+
+<div class="bw" id="booking-widget" data-api-url={apiUrl}>
+  <!-- Step 1: date -->
+  <section class="bw__step" data-bw="date-step" aria-labelledby="bw-date-heading">
+    <h2 id="bw-date-heading" class="bw__step-title">
+      <span class="bw__step-num" aria-hidden="true">1</span> Pick a day
+    </h2>
+    <p class="bw__tz" data-bw="tz-note">Times are shown in your local timezone.</p>
+    <div class="bw__dates" data-bw="dates" role="group" aria-label="Available days"></div>
+  </section>
+
+  <!-- Step 2: time -->
+  <section class="bw__step" data-bw="time-step" hidden aria-labelledby="bw-time-heading">
+    <h2 id="bw-time-heading" class="bw__step-title">
+      <span class="bw__step-num" aria-hidden="true">2</span> Pick a time
+    </h2>
+    <div class="bw__status" data-bw="time-status" hidden></div>
+    <div class="bw__times" data-bw="times" role="group" aria-label="Available times"></div>
+  </section>
+
+  <!-- Step 3: details -->
+  <section class="bw__step" data-bw="form-step" hidden aria-labelledby="bw-form-heading">
+    <h2 id="bw-form-heading" class="bw__step-title">
+      <span class="bw__step-num" aria-hidden="true">3</span> Your details
+    </h2>
+    <p class="bw__chosen" data-bw="chosen-slot"></p>
+
+    <form data-bw="form" novalidate>
+      <div class="bw__grid">
+        <div class="bw__field">
+          <label for="bw-name">Full name <span aria-hidden="true">*</span></label>
+          <input id="bw-name" name="name" type="text" autocomplete="name" required />
+          <p class="bw__error" data-error-for="name" hidden>Please enter your name.</p>
+        </div>
+        <div class="bw__field">
+          <label for="bw-email">Email <span aria-hidden="true">*</span></label>
+          <input id="bw-email" name="email" type="email" autocomplete="email" required />
+          <p class="bw__error" data-error-for="email" hidden>Please enter a valid email address.</p>
+        </div>
+        <div class="bw__field">
+          <label for="bw-phone">Phone</label>
+          <input id="bw-phone" name="phone" type="tel" autocomplete="tel" />
+        </div>
+        <div class="bw__field">
+          <label for="bw-practice">Practice name</label>
+          <input id="bw-practice" name="practice" type="text" autocomplete="organization" />
+        </div>
+        <div class="bw__field">
+          <label for="bw-specialty">Specialty</label>
+          <input
+            id="bw-specialty"
+            name="specialty"
+            type="text"
+            placeholder="e.g. Family medicine, mental health, PT/OT"
+          />
+        </div>
+        <div class="bw__field bw__field--full">
+          <label for="bw-notes">Anything we should know?</label>
+          <textarea
+            id="bw-notes"
+            name="notes"
+            rows="3"
+            placeholder="Current biller, EHR/PM system, biggest billing headache…"></textarea>
+        </div>
+      </div>
+
+      <div class="bw__alert" data-bw="submit-alert" role="alert" hidden></div>
+
+      <button type="submit" class="btn btn--primary btn--lg bw__submit" data-bw="submit">
+        Confirm booking
+      </button>
+    </form>
+  </section>
+
+  <!-- Success -->
+  <section class="bw__success" data-bw="success" hidden aria-labelledby="bw-success-heading">
+    <span class="bw__success-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6 9 17l-5-5"></path>
+      </svg>
+    </span>
+    <h2 id="bw-success-heading">You're booked!</h2>
+    <p class="bw__success-when" data-bw="success-when"></p>
+    <p>A Google Meet link is on its way to your inbox.</p>
+  </section>
+
+  <noscript>
+    <p class="bw__alert">
+      The booking calendar needs JavaScript. If you can't enable it, email us at
+      <a href="mailto:contact@implenix.net">contact@implenix.net</a> and we'll
+      find a time together.
+    </p>
+  </noscript>
+</div>
+
+<script>
+  interface Slot {
+    start: string; // ISO UTC
+    end: string; // ISO UTC
+  }
+
+  const root = document.getElementById('booking-widget');
+  if (root instanceof HTMLElement) initBookingWidget(root);
+
+  function initBookingWidget(root: HTMLElement): void {
+    const apiUrl = (root.dataset.apiUrl ?? '').replace(/\/+$/, '');
+    const timezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+
+    const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => {
+      const el = root.querySelector<T>(`[data-bw="${sel}"]`);
+      if (!el) throw new Error(`booking widget: missing element "${sel}"`);
+      return el;
+    };
+
+    const tzNote = $('tz-note');
+    const datesEl = $('dates');
+    const timeStep = $('time-step');
+    const timeStatus = $('time-status');
+    const timesEl = $('times');
+    const formStep = $('form-step');
+    const chosenSlotEl = $('chosen-slot');
+    const form = $<HTMLFormElement>('form');
+    const submitBtn = $<HTMLButtonElement>('submit');
+    const submitAlert = $('submit-alert');
+    const successEl = $('success');
+    const successWhen = $('success-when');
+    const dateStep = $('date-step');
+
+    let selectedDate: string | null = null; // YYYY-MM-DD
+    let selectedSlot: Slot | null = null;
+    let fetchSeq = 0;
+
+    tzNote.textContent = `Times are shown in your local timezone (${timezone.replace(/_/g, ' ')}), detected automatically.`;
+
+    // -- formatting helpers -------------------------------------------------
+
+    const dayChipFmt = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    const longDayFmt = new Intl.DateTimeFormat(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const timeFmt = new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    function toDateKey(d: Date): string {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function slotLabel(slot: Slot): string {
+      const start = new Date(slot.start);
+      return `${longDayFmt.format(start)} at ${timeFmt.format(start)}`;
+    }
+
+    // -- step 1: date chips -------------------------------------------------
+
+    function renderDateChips(): void {
+      datesEl.textContent = '';
+      const today = new Date();
+      for (let offset = 1; offset <= 14; offset++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
+        const dow = d.getDay();
+        if (dow === 0 || dow === 6) continue; // skip weekends
+        const key = toDateKey(d);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bw__chip';
+        btn.textContent = dayChipFmt.format(d);
+        btn.setAttribute('aria-pressed', 'false');
+        btn.dataset.date = key;
+        btn.addEventListener('click', () => selectDate(key, btn));
+        datesEl.appendChild(btn);
+      }
+    }
+
+    function selectDate(key: string, chip: HTMLButtonElement): void {
+      selectedDate = key;
+      selectedSlot = null;
+      for (const el of datesEl.querySelectorAll<HTMLButtonElement>('.bw__chip')) {
+        const active = el === chip;
+        el.classList.toggle('is-selected', active);
+        el.setAttribute('aria-pressed', String(active));
+      }
+      formStep.hidden = true;
+      timeStep.hidden = false;
+      void loadSlots(key);
+    }
+
+    // -- step 2: slots ------------------------------------------------------
+
+    function setTimeStatus(kind: 'loading' | 'empty' | 'error' | null, msg = ''): void {
+      timesEl.textContent = '';
+      if (kind === null) {
+        timeStatus.hidden = true;
+        timeStatus.textContent = '';
+        timeStatus.className = 'bw__status';
+        return;
+      }
+      timeStatus.hidden = false;
+      timeStatus.className = `bw__status bw__status--${kind}`;
+      timeStatus.textContent = msg;
+      if (kind === 'error') {
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'bw__retry';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+          if (selectedDate) void loadSlots(selectedDate);
+        });
+        timeStatus.append(' ', retry);
+      }
+    }
+
+    async function loadSlots(date: string): Promise<Slot[]> {
+      const seq = ++fetchSeq;
+      setTimeStatus('loading', 'Checking open times…');
+      try {
+        const res = await fetch(
+          `${apiUrl}/api/booking/slots?date=${encodeURIComponent(date)}&tz=${encodeURIComponent(timezone)}`,
+          { headers: { Accept: 'application/json' } },
+        );
+        if (!res.ok) throw new Error(`slots request failed (${res.status})`);
+        const data = (await res.json()) as { slots?: Slot[] };
+        const slots = Array.isArray(data.slots) ? data.slots : [];
+        if (seq !== fetchSeq) return slots; // stale response, a newer date was picked
+        if (slots.length === 0) {
+          setTimeStatus('empty', 'No open times this day. Try another day.');
+        } else {
+          setTimeStatus(null);
+          renderSlots(slots);
+        }
+        return slots;
+      } catch {
+        if (seq === fetchSeq) {
+          setTimeStatus(
+            'error',
+            "We couldn't load open times. Check your connection and",
+          );
+        }
+        return [];
+      }
+    }
+
+    function renderSlots(slots: Slot[]): void {
+      timesEl.textContent = '';
+      for (const slot of slots) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bw__chip bw__chip--time';
+        btn.textContent = timeFmt.format(new Date(slot.start));
+        btn.setAttribute('aria-pressed', 'false');
+        btn.addEventListener('click', () => selectSlot(slot, btn));
+        timesEl.appendChild(btn);
+      }
+    }
+
+    function selectSlot(slot: Slot, chip: HTMLButtonElement): void {
+      selectedSlot = slot;
+      for (const el of timesEl.querySelectorAll<HTMLButtonElement>('.bw__chip')) {
+        const active = el === chip;
+        el.classList.toggle('is-selected', active);
+        el.setAttribute('aria-pressed', String(active));
+      }
+      chosenSlotEl.textContent = `Booking a 30-minute call: ${slotLabel(slot)}`;
+      formStep.hidden = false;
+      hideSubmitAlert();
+      formStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // -- step 3: form + submit ----------------------------------------------
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function fieldError(name: string, show: boolean): void {
+      const err = root.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+      const input = form.elements.namedItem(name);
+      if (err) err.hidden = !show;
+      if (input instanceof HTMLElement) {
+        input.setAttribute('aria-invalid', String(show));
+      }
+    }
+
+    function showSubmitAlert(message: string, kind: 'error' | 'info' = 'error'): void {
+      submitAlert.hidden = false;
+      submitAlert.textContent = message;
+      submitAlert.className = `bw__alert bw__alert--${kind}`;
+    }
+
+    function hideSubmitAlert(): void {
+      submitAlert.hidden = true;
+      submitAlert.textContent = '';
+    }
+
+    function fieldValue(name: string): string {
+      const el = form.elements.namedItem(name);
+      return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        ? el.value.trim()
+        : '';
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void submitBooking();
+    });
+
+    async function submitBooking(): Promise<void> {
+      hideSubmitAlert();
+
+      const name = fieldValue('name');
+      const email = fieldValue('email');
+      const nameOk = name.length > 0;
+      const emailOk = EMAIL_RE.test(email);
+      fieldError('name', !nameOk);
+      fieldError('email', !emailOk);
+      if (!nameOk || !emailOk) return;
+
+      if (!selectedSlot) {
+        showSubmitAlert('Please pick a time first.');
+        return;
+      }
+      const slot = selectedSlot;
+
+      const payload: Record<string, string> = {
+        start: slot.start,
+        name,
+        email,
+        timezone,
+      };
+      for (const key of ['phone', 'practice', 'specialty', 'notes']) {
+        const value = fieldValue(key);
+        if (value) payload[key] = value;
+      }
+
+      submitBtn.disabled = true;
+      const originalLabel = submitBtn.textContent;
+      submitBtn.textContent = 'Booking…';
+
+      try {
+        const res = await fetch(`${apiUrl}/api/booking`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 201) {
+          successWhen.textContent = slotLabel(slot);
+          dateStep.hidden = true;
+          timeStep.hidden = true;
+          formStep.hidden = true;
+          successEl.hidden = false;
+          successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        if (res.status === 409) {
+          selectedSlot = null;
+          formStep.hidden = true;
+          if (selectedDate) {
+            const fresh = await loadSlots(selectedDate);
+            const note = fresh.length
+              ? 'That time was just taken — sorry! Here are the latest open times.'
+              : 'That time was just taken and no other times are open that day. Please pick another day.';
+            setConflictNote(note);
+          }
+          return;
+        }
+
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        showSubmitAlert(
+          body?.error && body.error !== 'slot_taken'
+            ? `We couldn't complete the booking (${body.error}). Please check your details and try again.`
+            : "We couldn't complete the booking. Please check your details and try again.",
+        );
+      } catch {
+        showSubmitAlert(
+          "We couldn't reach the booking service. Please check your connection and try again — your details are still filled in.",
+        );
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    }
+
+    function setConflictNote(message: string): void {
+      timeStatus.hidden = false;
+      timeStatus.className = 'bw__status bw__status--info';
+      const note = document.createElement('p');
+      note.className = 'bw__conflict';
+      note.textContent = message;
+      timeStatus.textContent = '';
+      timeStatus.appendChild(note);
+      timeStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // -- go -----------------------------------------------------------------
+
+    renderDateChips();
+  }
+</script>
+
+<style is:global>
+  .bw {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    display: grid;
+    gap: 2rem;
+  }
+
+  .bw__step-title {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 1.15rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .bw__step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    background: var(--navy-800);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 750;
+    flex: none;
+  }
+
+  .bw__tz {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0 0 1rem;
+  }
+
+  .bw__dates,
+  .bw__times {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .bw__chip {
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--navy-800);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 0.55rem 1.1rem;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background-color 0.12s ease,
+      color 0.12s ease;
+  }
+
+  .bw__chip:hover {
+    border-color: var(--teal-500);
+    color: var(--teal-600);
+  }
+
+  .bw__chip.is-selected {
+    background: var(--teal-500);
+    border-color: var(--teal-500);
+    color: #fff;
+  }
+
+  .bw__status {
+    color: var(--muted);
+    font-size: 0.97rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .bw__status--error {
+    color: var(--danger);
+  }
+
+  .bw__status--loading::before {
+    content: '';
+    display: inline-block;
+    width: 0.85em;
+    height: 0.85em;
+    margin-right: 0.5em;
+    border: 2px solid var(--teal-500);
+    border-top-color: transparent;
+    border-radius: 50%;
+    vertical-align: -0.1em;
+    animation: bw-spin 0.7s linear infinite;
+  }
+
+  @keyframes bw-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .bw__retry {
+    font: inherit;
+    font-weight: 650;
+    color: var(--teal-600);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .bw__conflict {
+    margin: 0 0 0.75rem;
+    color: var(--navy-800);
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-weight: 550;
+  }
+
+  .bw__chosen {
+    color: var(--teal-600);
+    font-weight: 650;
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin: 0 0 1.25rem;
+  }
+
+  .bw__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 640px) {
+    .bw__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .bw__field--full {
+    grid-column: 1 / -1;
+  }
+
+  .bw__field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+    color: var(--navy-800);
+  }
+
+  .bw__field input,
+  .bw__field textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.85rem;
+  }
+
+  .bw__field input:focus,
+  .bw__field textarea:focus {
+    outline: none;
+    border-color: var(--teal-500);
+    box-shadow: 0 0 0 3px rgba(15, 163, 163, 0.18);
+  }
+
+  .bw__field input[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+
+  .bw__field textarea {
+    resize: vertical;
+  }
+
+  .bw__error {
+    color: var(--danger);
+    font-size: 0.88rem;
+    margin: 0.35rem 0 0;
+  }
+
+  .bw__alert {
+    color: var(--danger);
+    background: #fbeeeb;
+    border: 1px solid #eed4cd;
+    border-radius: var(--radius);
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-weight: 550;
+  }
+
+  .bw__alert--info {
+    color: var(--navy-800);
+    background: var(--teal-50);
+    border-color: var(--teal-100);
+  }
+
+  .bw__alert:empty {
+    display: none;
+  }
+
+  .bw__submit {
+    width: 100%;
+  }
+
+  .bw__submit:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .bw__success {
+    text-align: center;
+    padding-block: 1.5rem;
+  }
+
+  .bw__success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: var(--teal-100);
+    color: var(--teal-600);
+    margin-bottom: 1rem;
+  }
+
+  .bw__success-when {
+    font-size: 1.15rem;
+    font-weight: 650;
+    color: var(--navy-800);
+    margin-bottom: 0.5rem;
+  }
+
+  .bw__success p:last-child {
+    color: var(--muted);
+    margin: 0;
+  }
+</style>

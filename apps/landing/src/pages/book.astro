@@ -1,0 +1,82 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BookingWidget from '../components/BookingWidget.astro';
+---
+
+<Layout
+  title="Book a Call — Implenix Medical Billing"
+  description="Book a free 30-minute call with Implenix. We'll review how your practice bills today, where revenue is leaking to denials, and what we'd do differently."
+>
+  <section class="book">
+    <div class="container book__container">
+      <header class="book__header">
+        <h1>Book your free billing review</h1>
+        <p>
+          Pick a time below for a 30-minute call. We'll ask about your specialty,
+          payer mix, and current billing setup — and tell you plainly where we
+          think revenue is leaking. A Google Meet invite lands in your inbox as
+          soon as you book.
+        </p>
+      </header>
+
+      <BookingWidget />
+
+      <ul class="book__reassure">
+        <li>No obligation, no pressure — a working session, not a sales pitch</li>
+        <li>Bring your denial or AR reports if you have them handy</li>
+        <li>Need a different time? Email
+          <a href="mailto:contact@implenix.net">contact@implenix.net</a></li>
+      </ul>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .book {
+    background: var(--bg-alt);
+    padding-block: clamp(3rem, 7vw, 5rem);
+    min-height: 60vh;
+  }
+
+  .book__container {
+    max-width: 46rem;
+  }
+
+  .book__header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .book__header h1 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+  }
+
+  .book__header p {
+    color: var(--muted);
+    max-width: 38rem;
+    margin: 0 auto;
+  }
+
+  .book__reassure {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .book__reassure li {
+    padding-left: 1.5rem;
+    position: relative;
+  }
+
+  .book__reassure li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--teal-600);
+    font-weight: 700;
+  }
+</style>

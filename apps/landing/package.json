@@ -1,0 +1,21 @@
+{
+  "name": "@implenix/landing",
+  "private": true,
+  "version": "0.1.0",
+  "description": "implenix.net — marketing landing site for Implenix medical billing services (Astro, static)",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.7.0",
+    "@astrojs/sitemap": "^3.3.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.6.0"
+  }
+}

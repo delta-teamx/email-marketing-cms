@@ -1,0 +1,51 @@
+---
+/**
+ * Placeholder Implenix wordmark. The client's real logo will replace the
+ * contents of this single component later — keep all logo usage routed here.
+ */
+interface Props {
+  /** Renders the wordmark in white for use on dark backgrounds. */
+  onDark?: boolean;
+}
+const { onDark = false } = Astro.props;
+---
+
+<span class:list={['logo', { 'logo--on-dark': onDark }]}>
+  <svg
+    class="logo__mark"
+    viewBox="0 0 64 64"
+    width="30"
+    height="30"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <rect width="64" height="64" rx="14" fill="#0B2140"></rect>
+    <rect x="14" y="34" width="8" height="16" rx="2" fill="#5D7B99"></rect>
+    <rect x="28" y="26" width="8" height="24" rx="2" fill="#8FB3CF"></rect>
+    <rect x="42" y="14" width="8" height="36" rx="2" fill="#0FA3A3"></rect>
+  </svg>
+  <span class="logo__word">Implenix</span>
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .logo__mark {
+    flex: none;
+  }
+
+  .logo__word {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--navy-800);
+  }
+
+  .logo--on-dark .logo__word {
+    color: #fff;
+  }
+</style>

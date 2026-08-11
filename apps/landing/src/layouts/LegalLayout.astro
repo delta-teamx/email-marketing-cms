@@ -1,0 +1,82 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** The h1 shown on the page (defaults to `title`). */
+  heading?: string;
+  effectiveDate?: string;
+}
+
+const {
+  title,
+  description,
+  heading = title,
+  effectiveDate = 'Effective: [DATE]',
+} = Astro.props;
+---
+
+<Layout title={title} description={description}>
+  <article class="legal">
+    <div class="container legal__container">
+      <header class="legal__header">
+        <h1>{heading}</h1>
+        <p class="legal__meta">{effectiveDate}</p>
+      </header>
+      <div class="legal__body">
+        <slot />
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .legal {
+    padding-block: clamp(3rem, 7vw, 5rem);
+  }
+
+  .legal__container {
+    max-width: 46rem;
+  }
+
+  .legal__header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .legal__meta {
+    color: var(--muted);
+    font-weight: 550;
+    margin: 0;
+  }
+
+  .legal__body :global(h2) {
+    font-size: 1.35rem;
+    margin-top: 2.5rem;
+  }
+
+  .legal__body :global(h3) {
+    font-size: 1.1rem;
+    margin-top: 1.75rem;
+  }
+
+  .legal__body :global(ul) {
+    padding-left: 1.4rem;
+    margin: 0 0 1rem;
+  }
+
+  .legal__body :global(li) {
+    margin-bottom: 0.4rem;
+  }
+
+  .legal__body :global(address) {
+    font-style: normal;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+</style>

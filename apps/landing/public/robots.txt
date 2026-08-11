@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://implenix.net/sitemap-index.xml

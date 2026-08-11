@@ -1,0 +1,122 @@
+---
+import Logo from './Logo.astro';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div class="site-footer__brand">
+      <a href="/" aria-label="Implenix — home"><Logo onDark /></a>
+      <p>
+        End-to-end medical billing for US practitioners — claims, denials,
+        AR follow-up, and credentialing, handled.
+      </p>
+    </div>
+
+    <nav aria-label="Footer">
+      <div class="site-footer__cols">
+        <div>
+          <h2 class="site-footer__heading">Company</h2>
+          <ul>
+            <li><a href="/#services">Services</a></li>
+            <li><a href="/#how-it-works">How it works</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="/book">Book a call</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="site-footer__heading">Legal</h2>
+          <ul>
+            <li><a href="/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/terms-of-service">Terms of Service</a></li>
+            <li><a href="/hipaa-notice">HIPAA Notice</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container site-footer__bottom">
+    <p>Implenix &mdash; 1879 NW 8th St, Miami, FL 33125</p>
+    <p>&copy; {year} Implenix. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--navy-900);
+    color: var(--navy-100);
+    padding-top: 4rem;
+    font-size: 0.97rem;
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3rem;
+    justify-content: space-between;
+    padding-bottom: 3rem;
+  }
+
+  .site-footer__brand {
+    max-width: 22rem;
+  }
+
+  .site-footer__brand a {
+    display: inline-block;
+    text-decoration: none;
+    margin-bottom: 1rem;
+  }
+
+  .site-footer__brand p {
+    color: #93a7bd;
+    margin: 0;
+  }
+
+  .site-footer__cols {
+    display: flex;
+    gap: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .site-footer__heading {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7a92ab;
+    margin-bottom: 1rem;
+  }
+
+  .site-footer ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .site-footer nav a {
+    color: var(--navy-100);
+    text-decoration: none;
+  }
+
+  .site-footer nav a:hover {
+    color: var(--teal-500);
+  }
+
+  .site-footer__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-block: 1.5rem;
+  }
+
+  .site-footer__bottom p {
+    margin: 0;
+    color: #93a7bd;
+  }
+</style>
