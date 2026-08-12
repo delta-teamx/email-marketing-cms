@@ -7,5 +7,11 @@ export default defineConfig({
   site: 'https://implenix.net',
   output: 'static',
   trailingSlash: 'never',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/404'),
+      changefreq: 'weekly',
+      priority: 0.7,
+    }),
+  ],
 });

@@ -24,6 +24,12 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Media (logo, photos) — cache a week, revalidate after.
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, stale-while-revalidate=86400"
+
 # Sensible security headers for a static marketing site.
 [[headers]]
   for = "/*"

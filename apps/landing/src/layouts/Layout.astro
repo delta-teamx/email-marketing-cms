@@ -10,12 +10,42 @@ interface Props {
   canonical?: string;
   /** OpenGraph type, defaults to "website". */
   ogType?: string;
+  /** Ask crawlers not to index this page (404, thank-you, etc.). */
+  noindex?: boolean;
 }
 
-const { title, description, canonical, ogType = 'website' } = Astro.props;
+const { title, description, canonical, ogType = 'website', noindex = false } = Astro.props;
 
 const canonicalURL = canonical ?? new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL('/og-image.svg', Astro.site).href;
+
+// Sitewide structured data: who we are and what this site is.
+const organizationLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://implenix.net/#organization',
+  name: 'Implenix',
+  url: 'https://implenix.net',
+  logo: new URL('/favicon.svg', Astro.site).href,
+  email: 'contact@implenix.net',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '1879 NW 8th St',
+    addressLocality: 'Miami',
+    addressRegion: 'FL',
+    postalCode: '33125',
+    addressCountry: 'US',
+  },
+};
+
+const webSiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://implenix.net/#website',
+  name: 'Implenix',
+  url: 'https://implenix.net',
+  publisher: { '@id': 'https://implenix.net/#organization' },
+};
 ---
 
 <!doctype html>
@@ -30,6 +60,10 @@ const ogImage = new URL('/og-image.svg', Astro.site).href;
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#0B2140" />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <script type="application/ld+json" set:html={JSON.stringify(organizationLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(webSiteLd)} />
 
     <!-- OpenGraph -->
     <meta property="og:type" content={ogType} />

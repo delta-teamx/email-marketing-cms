@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Page Not Found — Implenix"
+  description="The page you were looking for does not exist. Explore Implenix medical billing services or book a call."
+  noindex={true}
+>
+  <section class="notfound">
+    <div class="container notfound__inner">
+      <p class="notfound__code">404</p>
+      <h1>That page doesn't exist</h1>
+      <p class="notfound__sub">
+        The link may be outdated or mistyped. Here's where you probably want to go:
+      </p>
+      <div class="notfound__actions">
+        <a href="/" class="btn btn--primary">Back to home</a>
+        <a href="/book" class="btn btn--ghost">Book a call</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .notfound__inner {
+    text-align: center;
+    padding-block: clamp(5rem, 12vw, 9rem);
+    max-width: 36rem;
+  }
+
+  .notfound__code {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--teal-500);
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+  }
+
+  .notfound__sub {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 1rem auto 2rem;
+  }
+
+  .notfound__actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

@@ -15,9 +15,26 @@ const {
   heading = title,
   effectiveDate = 'Effective: [DATE]',
 } = Astro.props;
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://implenix.net/' },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: heading,
+      item: new URL(Astro.url.pathname, Astro.site).href,
+    },
+  ],
+};
 ---
 
 <Layout title={title} description={description}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+  </Fragment>
   <article class="legal">
     <div class="container legal__container">
       <header class="legal__header">
