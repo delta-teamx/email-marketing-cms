@@ -1,22 +1,27 @@
 /* ---------------------------------------------------------------------------
    Implenix landing site — global styles
-   Deep navy + teal, generous whitespace, system font stack, no external assets.
+   Brand palette derived from the Implenix logo:
+     #004e7a  deep ocean blue (logo "i" + arrow mark)   → primary
+     #3efaff  bright cyan (site identity icon)          → accent on dark only
+     black wordmark on white                            → ink/background
+   Token names are historical (navy-x, teal-x); values are the brand palette.
 --------------------------------------------------------------------------- */
 
 :root {
-  --navy-900: #081a33;
-  --navy-800: #0b2140;
-  --navy-700: #12315c;
-  --navy-100: #dbe6f0;
-  --teal-600: #0c8484;
-  --teal-500: #0fa3a3;
-  --teal-100: #dff3f3;
-  --teal-50: #eef8f8;
-  --ink: #16283e;
-  --muted: #52667d;
-  --border: #dfe7ee;
+  --navy-900: #05283d; /* darkest ocean — dark bands */
+  --navy-800: #003a5c; /* dark ocean — headings, dark surfaces */
+  --navy-700: #00537f; /* gradient partner */
+  --navy-100: #cfe3ef; /* light blue text on dark */
+  --teal-600: #004e7a; /* brand blue — accent text/links on light */
+  --teal-500: #0d6da3; /* mid brand blue — buttons, borders */
+  --teal-100: #d6e9f4; /* blue tint */
+  --teal-50: #edf5fa; /* faint blue tint */
+  --cyan: #3efaff; /* icon cyan — use ONLY on dark backgrounds */
+  --ink: #10222f;
+  --muted: #4d6374;
+  --border: #dce6ec;
   --bg: #ffffff;
-  --bg-alt: #f5f8fa;
+  --bg-alt: #f4f8fb;
   --danger: #b3402e;
   --success: #1d7a4c;
 
@@ -128,7 +133,7 @@ a:hover {
   text-align: center;
 }
 
-.section-head .kicker {
+.kicker {
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 700;

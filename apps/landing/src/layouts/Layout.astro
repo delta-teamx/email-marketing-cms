@@ -17,7 +17,7 @@ interface Props {
 const { title, description, canonical, ogType = 'website', noindex = false } = Astro.props;
 
 const canonicalURL = canonical ?? new URL(Astro.url.pathname, Astro.site).href;
-const ogImage = new URL('/og-image.svg', Astro.site).href;
+const ogImage = new URL('/og-image.png', Astro.site).href;
 
 // Sitewide structured data: who we are and what this site is.
 const organizationLd = {
@@ -26,7 +26,7 @@ const organizationLd = {
   '@id': 'https://implenix.net/#organization',
   name: 'Implenix',
   url: 'https://implenix.net',
-  logo: new URL('/favicon.svg', Astro.site).href,
+  logo: new URL('/media/implenix-logo.png', Astro.site).href,
   email: 'contact@implenix.net',
   address: {
     '@type': 'PostalAddress',
@@ -56,10 +56,13 @@ const webSiteLd = {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#0B2140" />
+    <meta name="theme-color" content="#003a5c" />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <script type="application/ld+json" set:html={JSON.stringify(organizationLd)} />
@@ -74,8 +77,12 @@ const webSiteLd = {
     <meta property="og:image" content={ogImage} />
     <meta property="og:locale" content="en_US" />
 
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Implenix — Medical Billing & Revenue Cycle Management" />
+
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
