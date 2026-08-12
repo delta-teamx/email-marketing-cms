@@ -15,8 +15,16 @@ const faqs = [
     a: 'No. We work inside your existing EHR and practice management system — we request appropriately scoped user access and handle billing in the tools you already use. There is no data migration and no new software for your front desk to learn.',
   },
   {
+    q: 'Does Implenix replace our front-desk or clinical staff?',
+    a: 'No — we replace the billing headache, not your people. Your team keeps doing what they do today; we take over the claim work that happens behind the scenes: coding review, scrubbing, submission, denials, follow-up, and patient balance questions.',
+  },
+  {
     q: 'Are you HIPAA compliant?',
     a: 'Yes. As a billing company we operate as a business associate under HIPAA. We sign a Business Associate Agreement (BAA) with every client, apply the minimum-necessary standard to all PHI access, and maintain administrative, physical, and technical safeguards. See our HIPAA Notice for details.',
+  },
+  {
+    q: 'What visibility do we get into our own billing?',
+    a: 'Full visibility. You receive clear monthly reporting — charges, collections, adjustments, denial reasons, and AR aging by payer — plus a named point of contact who can answer "where is this claim?" any day of the month. Your data stays in your systems; you are never locked out of your own numbers.',
   },
   {
     q: 'How long does onboarding take?',
@@ -24,7 +32,7 @@ const faqs = [
   },
   {
     q: 'Which specialties do you support?',
-    a: 'We support solo practitioners, group practices, and specialists across family medicine, internal medicine, mental and behavioral health, physical and occupational therapy, chiropractic, and more. If your specialty is not listed, book a call — coverage is broader than this list.',
+    a: 'We support practices across family medicine, internal medicine, mental and behavioral health, physical and occupational therapy, chiropractic, pain management, laboratories, imaging, and many more. If your specialty is not listed, book a call — coverage is broader than any list on this page.',
   },
 ];
 
@@ -33,7 +41,7 @@ const professionalServiceLd = {
   '@type': 'ProfessionalService',
   name: 'Implenix',
   description:
-    'End-to-end medical billing services for US practitioners: claims submission, denial management, AR follow-up, eligibility verification, credentialing, and patient billing support.',
+    'End-to-end medical billing and revenue cycle management for US practices: eligibility verification, medical coding, claims submission, denial management, AR follow-up, credentialing, payment posting, and patient billing support.',
   url: 'https://implenix.net',
   email: 'contact@implenix.net',
   address: {
@@ -50,10 +58,12 @@ const professionalServiceLd = {
   },
   knowsAbout: [
     'Medical billing',
-    'Claim denial management',
     'Revenue cycle management',
+    'Medical coding',
+    'Claim denial management',
     'Provider credentialing',
     'Accounts receivable follow-up',
+    'Eligibility verification',
   ],
 };
 
@@ -67,7 +77,46 @@ const faqLd = {
   })),
 };
 
+const rcmSteps = [
+  {
+    title: 'Eligibility & benefits',
+    body: 'Coverage, copays, deductibles, and authorization requirements verified before the patient is seen.',
+  },
+  {
+    title: 'Coding review',
+    body: 'CPT and ICD-10 codes checked for accuracy and payer compliance before a claim is ever created.',
+  },
+  {
+    title: 'Scrub & submit',
+    body: 'Claims scrubbed against payer rules and out the door fast — errors caught on our desk, not in denials.',
+  },
+  {
+    title: 'Payment posting',
+    body: 'ERAs and EOBs posted accurately, underpayments flagged against your contracted rates.',
+  },
+  {
+    title: 'Denials & appeals',
+    body: 'Every denial worked to root cause — corrected, appealed, resubmitted, and prevented from recurring.',
+  },
+  {
+    title: 'AR follow-up',
+    body: 'Aging claims chased to resolution on a schedule, so earned revenue does not die in a work queue.',
+  },
+  {
+    title: 'Patient billing & reporting',
+    body: 'Clear patient statements, professional balance support, and monthly reporting you can actually read.',
+  },
+];
+
 const services = [
+  {
+    title: 'Eligibility & benefits verification',
+    body: 'Coverage checked before the visit, not after. Fewer eligibility denials, fewer surprise patient balances, cleaner claims from the start.',
+  },
+  {
+    title: 'Medical coding',
+    body: 'Claims go out with accurate CPT and ICD-10 coding, reviewed against current payer guidelines — the single biggest lever on denial rates.',
+  },
   {
     title: 'Claims submission & scrubbing',
     body: 'Every claim is scrubbed against payer rules before it goes out, so errors are caught on our desk — not in a denial letter weeks later.',
@@ -81,16 +130,44 @@ const services = [
     body: 'Aging claims do not sit. We chase every unpaid claim through to resolution, so revenue you have already earned actually reaches your account.',
   },
   {
-    title: 'Eligibility & benefits verification',
-    body: 'Coverage checked before the visit, not after. Fewer eligibility denials, fewer surprise patient balances, cleaner claims from the start.',
-  },
-  {
     title: 'Provider credentialing',
     body: 'Enrollment and re-credentialing with payers, handled end to end — applications, CAQH upkeep, and follow-up until you are in network and billable.',
   },
   {
+    title: 'Payment posting & reporting',
+    body: 'Payments posted accurately and reconciled, with monthly reporting that shows charges, collections, denials, and AR aging in plain language.',
+  },
+  {
     title: 'Patient billing support',
     body: 'Clear statements and a professional, patient-friendly point of contact for balance questions — so your front desk stays focused on care.',
+  },
+];
+
+const compareRows = [
+  {
+    label: 'Denied claims',
+    typical: 'Written off when the team runs out of time',
+    implenix: 'Worked to root cause, appealed, and prevented from recurring',
+  },
+  {
+    label: 'AR over 90 days',
+    typical: 'Grows quietly until it is unrecoverable',
+    implenix: 'Chased on a schedule until it is paid or truly closed',
+  },
+  {
+    label: 'Eligibility',
+    typical: 'Checked sometimes, discovered in denials',
+    implenix: 'Verified before every visit, including benefits and auth requirements',
+  },
+  {
+    label: 'Visibility',
+    typical: 'A spreadsheet, if you ask twice',
+    implenix: 'Monthly reporting plus a named contact who answers "where is this claim?"',
+  },
+  {
+    label: 'Cost',
+    typical: 'Salaries, software, and turnover — paid whether you collect or not',
+    implenix: 'A percentage of collections — we only do well when you get paid',
   },
 ];
 
@@ -119,15 +196,34 @@ const audiences = [
     body: 'Multiple providers, multiple payer contracts, one accountable billing partner — with reporting that shows exactly how each provider is collecting.',
   },
   {
-    title: 'Specialists',
-    body: 'Specialty billing rules are where generic billers slip. We work daily with family medicine, mental health, PT/OT, chiropractic, and other specialty claim sets.',
+    title: 'Clinics & facilities',
+    body: 'From therapy clinics to labs and imaging centers, we handle high-volume, specialty-specific claim sets with the payer rules they demand.',
   },
+];
+
+const specialties = [
+  'Family medicine',
+  'Internal medicine',
+  'Mental & behavioral health',
+  'Physical & occupational therapy',
+  'Chiropractic',
+  'Pain management',
+  'Podiatry',
+  'Dermatology',
+  'Cardiology',
+  'Urgent care',
+  'Laboratories',
+  'Imaging centers',
+  'ENT',
+  'Telehealth',
+  'Rehabilitation',
+  'Speech therapy',
 ];
 ---
 
 <Layout
-  title="Implenix — Medical Billing Services for US Practitioners"
-  description="Stop losing revenue to claim denials. Implenix handles claims submission, denial management, AR follow-up, credentialing, and patient billing for US practitioners — so you get paid on time."
+  title="Implenix — Medical Billing & Revenue Cycle Management"
+  description="End-to-end medical billing for US practices: eligibility, coding, claims, denial management, AR follow-up, credentialing, and patient billing — priced as a percentage of collections, so we only do well when you get paid."
 >
   <Fragment slot="head">
     <script
@@ -140,17 +236,22 @@ const audiences = [
   <!-- Hero -->
   <section class="hero">
     <div class="container hero__inner">
-      <p class="hero__kicker">Medical billing for US practitioners</p>
+      <p class="hero__kicker">Medical billing &amp; RCM for US practices</p>
       <h1>Stop losing revenue to claim denials.</h1>
       <p class="hero__sub">
-        Implenix runs your entire billing operation — claims, denials, AR
-        follow-up, and credentialing — so your practice gets paid on time,
-        every time, while you stay focused on patients.
+        Implenix runs your entire revenue cycle — eligibility, coding, claims,
+        denials, AR follow-up, and credentialing — so your practice gets paid
+        on time, every time, while you stay focused on patients.
       </p>
       <div class="hero__actions">
         <a href="/book" class="btn btn--primary btn--lg">Book a call</a>
         <a href="#services" class="btn btn--ghost btn--lg">See what we do</a>
       </div>
+      <ul class="hero__chips" aria-label="Key facts">
+        <li>HIPAA compliant — BAA with every client</li>
+        <li>Works inside your existing EHR</li>
+        <li>US practices, nationwide</li>
+      </ul>
     </div>
   </section>
 
@@ -167,20 +268,48 @@ const audiences = [
       </div>
       <div class="trust__item">
         <span class="trust__stat">100%</span>
-        <span class="trust__label">of denials worked — follow-up on every claim, no write-off by default</span>
+        <span class="trust__label">of denials worked — no write-off by default</span>
+      </div>
+      <div class="trust__item">
+        <span class="trust__stat">$0</span>
+        <span class="trust__label">until you collect — we price as a percentage of collections</span>
       </div>
     </div>
   </section>
 
+  <!-- Revenue cycle, end to end -->
+  <section id="revenue-cycle" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">End to end</span>
+        <h2>The entire revenue cycle, owned by one team</h2>
+        <p>
+          Most billing problems live in the handoffs. We remove the handoffs —
+          one accountable team from the moment a patient books to the moment
+          the payment clears and is reconciled.
+        </p>
+      </div>
+      <ol class="rcm">
+        {rcmSteps.map((s, i) => (
+          <li class="rcm__item">
+            <span class="rcm__num" aria-hidden="true">{i + 1}</span>
+            <h3>{s.title}</h3>
+            <p>{s.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
   <!-- Services -->
-  <section id="services" class="section">
+  <section id="services" class="section section--alt">
     <div class="container">
       <div class="section-head">
         <span class="kicker">Services</span>
-        <h2>Your whole revenue cycle, handled</h2>
+        <h2>Everything a billing department does — without hiring one</h2>
         <p>
-          One accountable partner from the moment a patient books to the moment
-          the payment clears.
+          Take any service on its own, or hand us the whole cycle and get one
+          accountable partner.
         </p>
       </div>
       <div class="services-grid">
@@ -194,6 +323,30 @@ const audiences = [
             <h3>{s.title}</h3>
             <p>{s.body}</p>
           </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Why practices switch -->
+  <section id="why-switch" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Why practices switch</span>
+        <h2>What changes when Implenix runs your billing</h2>
+      </div>
+      <div class="compare" role="table" aria-label="Typical billing setup compared with Implenix">
+        <div class="compare__row compare__row--head" role="row">
+          <span role="columnheader" class="compare__label"></span>
+          <span role="columnheader">A typical billing setup</span>
+          <span role="columnheader" class="compare__implenix-head">With Implenix</span>
+        </div>
+        {compareRows.map((row) => (
+          <div class="compare__row" role="row">
+            <span class="compare__label" role="rowheader">{row.label}</span>
+            <span class="compare__typical" role="cell">{row.typical}</span>
+            <span class="compare__implenix" role="cell">{row.implenix}</span>
+          </div>
         ))}
       </div>
     </div>
@@ -227,10 +380,10 @@ const audiences = [
     <div class="container">
       <div class="section-head">
         <span class="kicker">Who we serve</span>
-        <h2>Built for practitioners, not hospital systems</h2>
+        <h2>Built for practices of every size</h2>
         <p>
-          We specialize in independent practices — the offices that feel every
-          denied claim in their monthly deposits.
+          From a single provider to multi-location groups and facilities — if
+          denied claims show up in your deposits, we can fix them.
         </p>
       </div>
       <div class="audience-grid">
@@ -241,10 +394,17 @@ const audiences = [
           </article>
         ))}
       </div>
-      <p class="audience-note">
-        Supporting family medicine, internal medicine, mental &amp; behavioral
-        health, physical &amp; occupational therapy, chiropractic, and more.
-      </p>
+      <div class="specialties">
+        <h3 class="specialties__title">Specialties we work with daily</h3>
+        <ul class="specialties__list" aria-label="Specialties">
+          {specialties.map((s) => (
+            <li class="specialties__chip">{s}</li>
+          ))}
+          <li class="specialties__chip specialties__chip--more">
+            <a href="/book">+ yours — ask us</a>
+          </li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -272,7 +432,8 @@ const audiences = [
       <h2>Find out what your denials are really costing you</h2>
       <p>
         Book a free 30-minute call. We will look at how your practice bills
-        today and tell you plainly what we would do differently.
+        today and tell you plainly what we would do differently — no
+        obligation, no pressure.
       </p>
       <a href="/book" class="btn btn--light btn--lg">Book a call</a>
     </div>
@@ -323,6 +484,36 @@ const audiences = [
     flex-wrap: wrap;
   }
 
+  .hero__chips {
+    list-style: none;
+    display: flex;
+    gap: 0.6rem 1.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 2.25rem 0 0;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .hero__chips li {
+    position: relative;
+    padding-left: 1.35rem;
+  }
+
+  .hero__chips li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--teal-100);
+    border: 2px solid var(--teal-500);
+  }
+
   /* Trust band ------------------------------------------------------------ */
   .trust {
     background: var(--navy-900);
@@ -331,7 +522,7 @@ const audiences = [
 
   .trust__inner {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 2rem;
     padding-block: 2.75rem;
   }
@@ -356,17 +547,157 @@ const audiences = [
     margin-inline: auto;
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 900px) {
+    .trust__inner {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
     .trust__inner {
       grid-template-columns: 1fr;
       gap: 1.75rem;
     }
   }
 
+  /* RCM flow --------------------------------------------------------------- */
+  .rcm {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    counter-reset: rcm;
+  }
+
+  @media (max-width: 1020px) {
+    .rcm {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 620px) {
+    .rcm {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .rcm__item {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  .rcm__item h3 {
+    font-size: 1.02rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .rcm__item p {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0;
+  }
+
+  .rcm__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    background: var(--teal-100);
+    color: var(--teal-600);
+    font-weight: 750;
+    font-size: 0.95rem;
+    margin-bottom: 0.85rem;
+  }
+
+  /* Compare table ----------------------------------------------------------- */
+  .compare {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg);
+    max-width: 60rem;
+    margin-inline: auto;
+  }
+
+  .compare__row {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr 1.15fr;
+    border-top: 1px solid var(--border);
+  }
+
+  .compare__row--head {
+    border-top: none;
+    background: var(--bg-alt);
+    font-weight: 700;
+    color: var(--navy-800);
+  }
+
+  .compare__row > span {
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .compare__label {
+    font-weight: 650;
+    color: var(--navy-800);
+  }
+
+  .compare__typical {
+    color: var(--muted);
+  }
+
+  .compare__implenix {
+    background: var(--teal-50);
+    color: var(--navy-800);
+  }
+
+  .compare__implenix-head {
+    background: var(--teal-50);
+    color: var(--teal-600);
+  }
+
+  @media (max-width: 720px) {
+    .compare__row {
+      grid-template-columns: 1fr;
+    }
+
+    .compare__row--head {
+      display: none;
+    }
+
+    .compare__label {
+      padding-bottom: 0.25rem;
+    }
+
+    .compare__typical {
+      padding-top: 0;
+      padding-bottom: 0.25rem;
+    }
+
+    .compare__typical::before {
+      content: 'Typical: ';
+      font-weight: 650;
+      color: var(--navy-800);
+    }
+
+    .compare__implenix::before {
+      content: 'Implenix: ';
+      font-weight: 650;
+      color: var(--teal-600);
+    }
+  }
+
   /* Cards / grids --------------------------------------------------------- */
   .services-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
   }
 
@@ -376,8 +707,13 @@ const audiences = [
     gap: 1.5rem;
   }
 
+  @media (max-width: 1020px) {
+    .services-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 900px) {
-    .services-grid,
     .audience-grid {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -420,11 +756,47 @@ const audiences = [
     box-shadow: none;
   }
 
-  .audience-note {
+  /* Specialties chips ------------------------------------------------------ */
+  .specialties {
+    margin-top: 3rem;
     text-align: center;
-    color: var(--muted);
-    margin: 2.25rem auto 0;
-    max-width: 38rem;
+  }
+
+  .specialties__title {
+    font-size: 1.05rem;
+    color: var(--navy-800);
+    margin-bottom: 1.25rem;
+  }
+
+  .specialties__list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0 auto;
+    padding: 0;
+    max-width: 52rem;
+  }
+
+  .specialties__chip {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    font-size: 0.92rem;
+    color: var(--navy-800);
+  }
+
+  .specialties__chip--more {
+    background: var(--teal-50);
+    border-color: var(--teal-100);
+  }
+
+  .specialties__chip--more a {
+    color: var(--teal-600);
+    text-decoration: none;
+    font-weight: 650;
   }
 
   /* Steps ----------------------------------------------------------------- */
