@@ -30,12 +30,4 @@ export async function suppress(
       .insert({ email: normalized, workspace_id: workspaceId, reason });
     if (error && !error.message.includes('duplicate')) throw new Error(error.message);
   }
-  // Stop every active lead with this email in the affected scope.
-  let q = db
-    .from('leads')
-    .update({ status: 'suppressed', next_send_at: null })
-    .eq('email', normalizeEmail(email))
-    .in('status', ['active', 'paused']);
-  if (workspaceId) q = q.eq('workspace_id', workspaceId);
-  await q;
 }

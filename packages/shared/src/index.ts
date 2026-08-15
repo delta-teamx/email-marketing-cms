@@ -1,6 +1,6 @@
 /**
  * @implenix/shared — types, constants, and helpers shared by the API,
- * dashboard, and landing site.
+ * dashboard, and landing site. (v2: booking-centric follow-up funnel.)
  */
 
 // ---------------------------------------------------------------------------
@@ -14,16 +14,85 @@ export const COMPANY = {
   postalAddress: '1879 NW 8th St, Miami, FL 33125',
 } as const;
 
-/** The only sending domains outreach campaigns are allowed to use. */
-export const SENDING_DOMAINS = [
-  'e.implenix.net',
-  'm.implenix.net',
-  's.implenix.net',
+// ---------------------------------------------------------------------------
+// Intake options (booking form — Calendly-style questions)
+// ---------------------------------------------------------------------------
+
+export const PRACTICE_TYPES = [
+  'Family medicine',
+  'Internal medicine',
+  'Mental & behavioral health',
+  'Physical & occupational therapy',
+  'Chiropractic',
+  'Pain management',
+  'Podiatry',
+  'Dermatology',
+  'Cardiology',
+  'Urgent care',
+  'Laboratory',
+  'Imaging center',
+  'Other',
 ] as const;
-export type SendingDomain = (typeof SENDING_DOMAINS)[number];
+
+export const PATIENT_FLOW_OPTIONS = [
+  'Under 100 patients/month',
+  '100–300 patients/month',
+  '300–500 patients/month',
+  '500+ patients/month',
+] as const;
 
 // ---------------------------------------------------------------------------
-// Reply classification
+// Contact stages (funnel)
+// ---------------------------------------------------------------------------
+
+export const CONTACT_STAGES = [
+  { key: 'new', name: 'New' },
+  { key: 'booked', name: 'Booked' },
+  { key: 'showed', name: 'Showed' },
+  { key: 'negotiating', name: 'Negotiating' },
+  { key: 'closed_won', name: 'Closed Won' },
+  { key: 'no_show', name: 'No-show' },
+  { key: 'cancelled', name: 'Cancelled' },
+  { key: 'not_interested', name: 'Not Interested' },
+  { key: 'dnc', name: 'DNC' },
+] as const;
+export type ContactStage = (typeof CONTACT_STAGES)[number]['key'];
+
+// ---------------------------------------------------------------------------
+// Follow-up sequence
+// ---------------------------------------------------------------------------
+
+export const FOLLOWUP_TRIGGERS = [
+  'confirmation',
+  'before_meeting',
+  'after_showed',
+  'after_no_show',
+] as const;
+export type FollowupTrigger = (typeof FOLLOWUP_TRIGGERS)[number];
+
+export const FOLLOWUP_TRIGGER_LABELS: Record<FollowupTrigger, string> = {
+  confirmation: 'Booking confirmation (instant)',
+  before_meeting: 'Reminders before the meeting',
+  after_showed: 'After the meeting (showed)',
+  after_no_show: 'After a no-show',
+};
+
+/** Merge tags available in follow-up templates. */
+export const FOLLOWUP_MERGE_TAGS = [
+  'first_name',
+  'last_name',
+  'full_name',
+  'email',
+  'phone',
+  'practice_type',
+  'patient_flow',
+  'meeting_time',
+  'meet_link',
+  'booking_link',
+] as const;
+
+// ---------------------------------------------------------------------------
+// Reply classification (inbound triage)
 // ---------------------------------------------------------------------------
 
 export const REPLY_CATEGORIES = [
@@ -36,62 +105,19 @@ export const REPLY_CATEGORIES = [
 ] as const;
 export type ReplyCategory = (typeof REPLY_CATEGORIES)[number];
 
-/** Categories a campaign owner can write reply templates for. */
-export const TEMPLATE_CATEGORIES = [
-  'interested',
-  'neutral',
-  'not_interested',
-  'dnc',
-] as const;
-export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number];
-
-// ---------------------------------------------------------------------------
-// Pipeline
-// ---------------------------------------------------------------------------
-
-export interface DefaultStage {
-  key: string;
-  name: string;
-  position: number;
-  isTerminal: boolean;
-}
-
-/** GHL-style default pipeline seeded into every new campaign. */
-export const DEFAULT_PIPELINE_STAGES: DefaultStage[] = [
-  { key: 'new', name: 'New', position: 1, isTerminal: false },
-  { key: 'contacted', name: 'Contacted', position: 2, isTerminal: false },
-  { key: 'opened', name: 'Opened', position: 3, isTerminal: false },
-  { key: 'replied', name: 'Replied', position: 4, isTerminal: false },
-  { key: 'interested', name: 'Interested', position: 5, isTerminal: false },
-  { key: 'meeting_booked', name: 'Meeting Booked', position: 6, isTerminal: false },
-  { key: 'negotiating', name: 'Negotiating', position: 7, isTerminal: false },
-  { key: 'sale_closed', name: 'Sale Closed', position: 8, isTerminal: true },
-  { key: 'not_interested', name: 'Not Interested', position: 9, isTerminal: true },
-  { key: 'dnc', name: 'DNC', position: 10, isTerminal: true },
-  { key: 'bounced', name: 'Bounced / Bad Email', position: 11, isTerminal: true },
-];
-
-// ---------------------------------------------------------------------------
-// Campaign
-// ---------------------------------------------------------------------------
-
-export type CampaignStatus = 'draft' | 'active' | 'paused' | 'archived';
-export type CampaignMode = 'full_auto' | 'review_first';
-export type LeadStatus = 'active' | 'paused' | 'finished' | 'suppressed';
-export type MessageDirection = 'outbound' | 'inbound';
-export type AgentActionStatus = 'pending' | 'completed' | 'rejected';
-
 export interface ReplyClassification {
   category: ReplyCategory;
   confidence: number; // 0..1
   meeting_intent: boolean;
-  proposed_times: string[]; // free-text time expressions extracted from reply
+  proposed_times: string[];
   summary: string;
-  ooo_return_date: string | null; // ISO date if out_of_office
+  ooo_return_date: string | null;
 }
 
+export type AppointmentOutcome = 'pending' | 'showed' | 'no_show' | 'cancelled';
+
 // ---------------------------------------------------------------------------
-// Booking API contract (used by the landing widget and the AI booking agent)
+// Booking API contract (landing widget + dashboard booking)
 // ---------------------------------------------------------------------------
 
 export interface BookingSlot {
@@ -105,11 +131,11 @@ export interface BookingRequest {
   start: string; // ISO datetime (UTC) of the chosen slot
   name: string;
   email: string;
-  phone?: string;
-  practice?: string;
-  specialty?: string;
+  phone: string;
+  practice_type: string;
+  patient_flow: string;
   notes?: string;
-  timezone: string; // IANA tz of the visitor, e.g. "America/New_York"
+  timezone: string; // IANA tz of the visitor
 }
 
 export interface BookingResponse {
@@ -120,6 +146,12 @@ export interface BookingResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Site analytics events
+// ---------------------------------------------------------------------------
+
+export type SiteEventType = 'pageview' | 'booking_started' | 'booking_completed';
+
+// ---------------------------------------------------------------------------
 // Merge tags
 // ---------------------------------------------------------------------------
 
@@ -128,14 +160,17 @@ export interface MergeContext {
   last_name?: string | null;
   full_name?: string | null;
   email?: string | null;
-  company?: string | null;
-  title?: string | null;
   phone?: string | null;
+  practice_type?: string | null;
+  patient_flow?: string | null;
+  meeting_time?: string | null;
+  meet_link?: string | null;
+  booking_link?: string | null;
   [key: string]: string | null | undefined;
 }
 
 /**
- * Render `{{tag}}` and `{{tag|fallback}}` merge tags against a lead context.
+ * Render `{{tag}}` and `{{tag|fallback}}` merge tags against a context.
  * Unknown tags with no fallback render as an empty string; whitespace left
  * behind by empty tags is collapsed.
  */
@@ -169,4 +204,9 @@ export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim());
+}
+
+export function splitName(full: string): { first: string; last: string | null } {
+  const parts = full.trim().split(/\s+/);
+  return { first: parts[0] ?? '', last: parts.length > 1 ? parts.slice(1).join(' ') : null };
 }

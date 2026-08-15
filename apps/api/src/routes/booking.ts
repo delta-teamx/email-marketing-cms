@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { PRACTICE_TYPES, PATIENT_FLOW_OPTIONS } from '@implenix/shared';
 import {
   getOpenSlots,
   createBooking,
@@ -12,13 +13,13 @@ const slotsQuery = z.object({
   tz: z.string().min(1).max(64),
 });
 
-const bookingBody = z.object({
+export const bookingBody = z.object({
   start: z.string().datetime({ offset: true }),
   name: z.string().min(1).max(200),
   email: z.string().email().max(320),
-  phone: z.string().max(40).optional(),
-  practice: z.string().max(200).optional(),
-  specialty: z.string().max(200).optional(),
+  phone: z.string().min(5).max(40),
+  practice_type: z.enum(PRACTICE_TYPES),
+  patient_flow: z.enum(PATIENT_FLOW_OPTIONS),
   notes: z.string().max(2000).optional(),
   timezone: z.string().min(1).max(64),
 });
@@ -39,7 +40,9 @@ export function bookingRoutes(app: FastifyInstance): void {
 
   app.post('/api/booking', async (req, reply) => {
     const parsed = bookingBody.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: 'bad_request', details: parsed.error.flatten() });
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'bad_request', details: parsed.error.flatten() });
+    }
     try {
       const booking = await createBooking(parsed.data, { source: 'landing' });
       return reply.code(201).send(booking);
@@ -56,10 +59,12 @@ export function bookingRoutes(app: FastifyInstance): void {
     const { id } = req.params as { id: string };
     const token = (req.query as { token?: string }).token ?? '';
     const ok = await cancelBooking(id, token);
-    if (!ok) return reply.code(404).type('text/html').send('<p>Booking not found or already cancelled.</p>');
+    if (!ok) {
+      return reply.code(404).type('text/html').send('<p>Booking not found or already cancelled.</p>');
+    }
     return reply
       .type('text/html')
-      .send('<p>Your booking has been cancelled. Feel free to rebook any time at implenix.net/book.</p>');
+      .send('<p>Your booking has been cancelled. You can rebook any time at implenix.net/book.</p>');
   };
   app.get('/api/booking/:id/cancel', cancel);
   app.post('/api/booking/:id/cancel', cancel);

@@ -31,9 +31,7 @@ function verifySignature(req: FastifyRequest): boolean {
 
 function headerValue(headers: unknown, name: string): string | null {
   if (Array.isArray(headers)) {
-    const h = headers.find(
-      (x: any) => String(x?.name ?? '').toLowerCase() === name.toLowerCase(),
-    );
+    const h = headers.find((x: any) => String(x?.name ?? '').toLowerCase() === name.toLowerCase());
     return h?.value ?? null;
   }
   if (headers && typeof headers === 'object') {
@@ -58,8 +56,7 @@ export function webhookRoutes(app: FastifyInstance): void {
       }
     } catch (err) {
       req.log.error(err, `webhook ${event.type} failed`);
-      // 200 anyway for terminal data errors would lose retries; 500 lets Svix retry.
-      return reply.code(500).send({ error: 'processing_failed' });
+      return reply.code(500).send({ error: 'processing_failed' }); // let Svix retry
     }
     return { received: true };
   });
@@ -75,20 +72,19 @@ const EVENT_MAP: Record<string, string> = {
 
 async function handleOutboundEvent(event: ResendEvent): Promise<void> {
   const eventType = EVENT_MAP[event.type];
-  if (!eventType) return; // email.sent etc. — not tracked
+  if (!eventType) return;
 
   const resendId = event.data?.email_id ?? event.data?.id;
   if (!resendId) return;
   const { data: message } = await db
     .from('messages')
-    .select('id, workspace_id, campaign_id, lead_id')
+    .select('id, workspace_id, contact_id')
     .eq('resend_id', resendId)
     .maybeSingle();
-  if (!message) return; // e.g. booking confirmations — not campaign mail
+  if (!message) return;
 
   await db.from('email_events').insert({
     workspace_id: message.workspace_id,
-    campaign_id: message.campaign_id,
     message_id: message.id,
     event_type: eventType,
     payload: event.data ?? {},
@@ -99,33 +95,21 @@ async function handleOutboundEvent(event: ResendEvent): Promise<void> {
     await db.from('messages').update({ status: 'delivered' }).eq('id', message.id);
   }
 
-  if (eventType === 'opened') {
-    await db
-      .from('leads')
-      .update({ stage_key: 'opened' })
-      .eq('id', message.lead_id)
-      .in('stage_key', ['contacted']);
-  }
-
   if (eventType === 'bounced' || eventType === 'complained') {
     await db.from('messages').update({ status: 'bounced' }).eq('id', message.id);
-    const { data: lead } = await db
-      .from('leads')
+    if (!message.contact_id) return;
+    const { data: contact } = await db
+      .from('contacts')
       .select('id, email, workspace_id')
-      .eq('id', message.lead_id)
-      .single();
-    if (!lead) return;
-
+      .eq('id', message.contact_id)
+      .maybeSingle();
+    if (!contact) return;
     const bounceType = String(event.data?.bounce?.type ?? event.data?.type ?? '').toLowerCase();
     const isHard =
       eventType === 'complained' || bounceType.includes('hard') || bounceType.includes('permanent') || bounceType === '';
     if (isHard) {
-      await suppress(lead.email, lead.workspace_id, eventType === 'complained' ? 'complaint' : 'hard_bounce');
+      await suppress(contact.email, contact.workspace_id, eventType === 'complained' ? 'complaint' : 'hard_bounce');
     }
-    await db
-      .from('leads')
-      .update({ status: 'suppressed', next_send_at: null, stage_key: 'bounced' })
-      .eq('id', lead.id);
   }
 }
 
@@ -143,51 +127,41 @@ async function handleInbound(event: ResendEvent): Promise<void> {
   const messageId = headerValue(d.headers, 'Message-ID');
   if (!fromEmail) return;
 
-  // 1. Best match: the reply's In-Reply-To points at one of our Message-IDs.
-  let leadId: string | null = null;
-  let campaignId: string | null = null;
+  // Best match: threading header → our message → contact.
+  let contactId: string | null = null;
   let workspaceId: string | null = null;
-
   if (inReplyTo) {
     const { data: parent } = await db
       .from('messages')
-      .select('lead_id, campaign_id, workspace_id')
+      .select('contact_id, workspace_id')
       .eq('smtp_message_id', inReplyTo)
       .maybeSingle();
-    if (parent) {
-      leadId = parent.lead_id;
-      campaignId = parent.campaign_id;
+    if (parent?.contact_id) {
+      contactId = parent.contact_id;
       workspaceId = parent.workspace_id;
     }
   }
-
-  // 2. Fallback: sender address + the campaign that owns the receiving domain.
-  if (!leadId) {
-    const toDomain = toEmail.split('@')[1] ?? '';
-    const { data: candidates } = await db
-      .from('leads')
-      .select('id, campaign_id, workspace_id, campaigns!inner(sending_domain)')
+  // Fallback: sender email → contact.
+  if (!contactId) {
+    const { data: contact } = await db
+      .from('contacts')
+      .select('id, workspace_id')
       .eq('email', fromEmail)
       .order('updated_at', { ascending: false })
-      .limit(10);
-    const match = (candidates ?? []).find(
-      (l: any) => l.campaigns?.sending_domain === toDomain,
-    ) ?? (candidates ?? [])[0];
-    if (match) {
-      leadId = match.id;
-      campaignId = match.campaign_id;
-      workspaceId = match.workspace_id;
+      .limit(1)
+      .maybeSingle();
+    if (contact) {
+      contactId = contact.id;
+      workspaceId = contact.workspace_id;
     }
   }
-
-  if (!leadId || !campaignId || !workspaceId) return; // unknown sender — ignore
+  if (!contactId || !workspaceId) return; // unknown sender — ignore
 
   const { data: inserted, error } = await db
     .from('messages')
     .insert({
       workspace_id: workspaceId,
-      campaign_id: campaignId,
-      lead_id: leadId,
+      contact_id: contactId,
       direction: 'inbound',
       smtp_message_id: messageId,
       in_reply_to: inReplyTo,
@@ -202,18 +176,8 @@ async function handleInbound(event: ResendEvent): Promise<void> {
     .single();
   if (error) throw new Error(error.message);
 
-  // A real reply stops the sequence immediately, before the agent even runs.
-  await db
-    .from('leads')
-    .update({
-      status: 'finished',
-      next_send_at: null,
-      last_replied_at: DateTime.utc().toISO(),
-    })
-    .eq('id', leadId);
-
   await replyQueue.add(
-    'process-reply',
+    'triage-reply',
     { inboundMessageId: inserted.id },
     { ...defaultJobOpts, jobId: `inbound:${inserted.id}` },
   );

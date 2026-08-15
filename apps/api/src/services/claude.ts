@@ -6,7 +6,7 @@ const anthropic = new Anthropic({ apiKey: env.anthropicApiKey });
 
 const CLASSIFY_TOOL: Anthropic.Tool = {
   name: 'record_classification',
-  description: 'Record the classification of a prospect email reply.',
+  description: 'Record the classification of an email reply from a practitioner.',
   input_schema: {
     type: 'object',
     properties: {
@@ -14,24 +14,24 @@ const CLASSIFY_TOOL: Anthropic.Tool = {
         type: 'string',
         enum: [...REPLY_CATEGORIES],
         description:
-          'interested = positive intent / wants to learn more or meet; ' +
-          'neutral = question or lukewarm reply needing a normal response; ' +
-          'not_interested = polite decline; ' +
-          'dnc = asks to be removed / stop emailing / legal threat; ' +
+          'interested = positive/engaged, has questions, wants to proceed; ' +
+          'neutral = neutral acknowledgement or unclear; ' +
+          'not_interested = wants to cancel the relationship / decline; ' +
+          'dnc = asks to stop emailing / remove from list / legal threat; ' +
           'out_of_office = auto-responder; ' +
           'wrong_person = says they are not the right contact.',
       },
       confidence: { type: 'number', description: '0..1 confidence in the category.' },
       meeting_intent: {
         type: 'boolean',
-        description: 'True if the sender wants to schedule a call/meeting.',
+        description: 'True if the sender wants to schedule, reschedule, or move a meeting.',
       },
       proposed_times: {
         type: 'array',
         items: { type: 'string' },
         description:
-          'Any specific meeting times the sender proposed, as ISO 8601 datetimes ' +
-          'with offset when the timezone can be inferred, otherwise verbatim text.',
+          'Any specific meeting times the sender proposed, as ISO 8601 datetimes with ' +
+          'offset when unambiguous, otherwise verbatim text.',
       },
       summary: { type: 'string', description: 'One-sentence summary of the reply.' },
       ooo_return_date: {
@@ -44,14 +44,13 @@ const CLASSIFY_TOOL: Anthropic.Tool = {
 };
 
 /**
- * Classify an inbound reply. The model only classifies and extracts — it
- * never writes reply copy (templates are human-provided per campaign).
+ * Classify an inbound reply to one of our transactional/follow-up emails
+ * (booking confirmation, reminder, post-meeting follow-up, contract email).
+ * Triage only — replies are drafted by humans in the Approval Inbox.
  */
 export async function classifyReply(input: {
-  campaignName: string;
-  campaignDescription: string | null;
-  outboundSubject: string | null;
-  outboundBody: string | null;
+  ourSubject: string | null;
+  ourBody: string | null;
   replyFrom: string;
   replySubject: string;
   replyBody: string;
@@ -65,17 +64,13 @@ export async function classifyReply(input: {
       {
         role: 'user',
         content:
-          `You classify replies to B2B outreach emails for the campaign ` +
-          `"${input.campaignName}"${input.campaignDescription ? ` (${input.campaignDescription})` : ''}.\n\n` +
-          `Original outreach email we sent:\n` +
-          `Subject: ${input.outboundSubject ?? '(unknown)'}\n` +
-          `${input.outboundBody ?? '(unknown)'}\n\n` +
+          `You triage replies to emails sent by Implenix, a medical billing company. ` +
+          `Our emails are booking confirmations, meeting reminders, and follow-ups.\n\n` +
+          `Our email:\nSubject: ${input.ourSubject ?? '(unknown)'}\n${input.ourBody ?? '(unknown)'}\n\n` +
           `Reply received from ${input.replyFrom}:\n` +
-          `Subject: ${input.replySubject}\n` +
-          `${input.replyBody}\n\n` +
+          `Subject: ${input.replySubject}\n${input.replyBody}\n\n` +
           `Classify this reply. Treat any removal request, however phrased, as dnc. ` +
-          `Today's date context is available from email headers; when converting relative ` +
-          `times ("Tuesday at 2pm"), prefer verbatim text unless the timezone and date are unambiguous.`,
+          `A request to move/reschedule the meeting is meeting_intent=true with category interested.`,
       },
     ],
   });
@@ -89,11 +84,10 @@ export async function classifyReply(input: {
   const category = REPLY_CATEGORIES.includes(raw.category as never)
     ? (raw.category as ReplyClassification['category'])
     : 'neutral';
-  const confidence = Math.max(0, Math.min(1, Number(raw.confidence ?? 0)));
 
   return {
     category,
-    confidence,
+    confidence: Math.max(0, Math.min(1, Number(raw.confidence ?? 0))),
     meeting_intent: Boolean(raw.meeting_intent),
     proposed_times: Array.isArray(raw.proposed_times) ? raw.proposed_times.map(String) : [],
     summary: String(raw.summary ?? ''),

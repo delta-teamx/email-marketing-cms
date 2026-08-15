@@ -1,10 +1,15 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import formbody from '@fastify/formbody';
 import { env } from './env.js';
 import { bookingRoutes } from './routes/booking.js';
+import { appointmentRoutes } from './routes/appointments.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { unsubscribeRoutes } from './routes/unsubscribe.js';
-import { campaignRoutes } from './routes/campaigns.js';
+import { followupRoutes } from './routes/followups.js';
+import { contractRoutes } from './routes/contracts.js';
+import { paymentRoutes } from './routes/payments.js';
+import { trackRoutes } from './routes/track.js';
 import { agentActionRoutes } from './routes/agentActions.js';
 
 export async function buildServer() {
@@ -20,6 +25,7 @@ export async function buildServer() {
     }
   });
 
+  await app.register(formbody); // contract signing form posts
   await app.register(cors, {
     origin: env.corsOrigins.includes('*') ? true : env.corsOrigins,
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -28,9 +34,13 @@ export async function buildServer() {
   app.get('/health', async () => ({ ok: true }));
 
   bookingRoutes(app);
+  appointmentRoutes(app);
   webhookRoutes(app);
   unsubscribeRoutes(app);
-  campaignRoutes(app);
+  followupRoutes(app);
+  contractRoutes(app);
+  paymentRoutes(app);
+  trackRoutes(app);
   agentActionRoutes(app);
 
   return app;

@@ -23,6 +23,8 @@ export const env = {
 
   resendApiKey: required('RESEND_API_KEY'),
   resendWebhookSecret: optional('RESEND_WEBHOOK_SECRET', ''),
+  /** From identity for all outgoing mail, e.g. `Implenix <hello@mail.implenix.net>` */
+  mailFrom: optional('MAIL_FROM', 'Implenix <hello@mail.implenix.net>'),
 
   anthropicApiKey: optional('ANTHROPIC_API_KEY', ''),
   anthropicModel: optional('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
@@ -51,9 +53,9 @@ export const env = {
     bufferMinutes: Number(optional('BOOKING_BUFFER_MINUTES', '15')),
     minNoticeHours: Number(optional('BOOKING_MIN_NOTICE_HOURS', '12')),
     days: optional('BOOKING_DAYS', '1,2,3,4,5').split(',').map(Number),
-    from: optional('BOOKING_FROM', 'Implenix <hello@e.implenix.net>'),
   },
 
   unsubscribeSecret: required('UNSUBSCRIBE_SECRET'),
   landingUrl: optional('LANDING_URL', 'https://implenix.net'),
+  dashboardUrl: optional('DASHBOARD_URL', 'https://marketing.implenix.net'),
 } as const;

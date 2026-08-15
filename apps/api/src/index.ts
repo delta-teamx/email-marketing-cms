@@ -1,11 +1,9 @@
 import { buildServer } from './server.js';
 import { startWorkers } from './queues/workers.js';
-import { scheduleTick } from './queues/queues.js';
 import { env } from './env.js';
 
 const app = await buildServer();
 const workers = startWorkers();
-await scheduleTick();
 
 await app.listen({ port: env.port, host: '0.0.0.0' });
 app.log.info(`Implenix API listening on :${env.port}`);

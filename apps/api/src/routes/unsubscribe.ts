@@ -12,24 +12,21 @@ const PAGE = (msg: string) =>
 export function unsubscribeRoutes(app: FastifyInstance): void {
   const handle = async (req: any, reply: any) => {
     const { token } = req.params as { token: string };
-    const leadId = verifyUnsubscribeToken(token);
-    if (!leadId) return reply.code(404).type('text/html').send(PAGE('Link not recognized.'));
+    const contactId = verifyUnsubscribeToken(token);
+    if (!contactId) return reply.code(404).type('text/html').send(PAGE('Link not recognized.'));
 
-    const { data: lead } = await db
-      .from('leads')
-      .select('email, workspace_id')
-      .eq('id', leadId)
+    const { data: contact } = await db
+      .from('contacts')
+      .select('id, email, workspace_id')
+      .eq('id', contactId)
       .maybeSingle();
-    if (lead) {
-      await suppress(lead.email, lead.workspace_id, 'unsubscribe');
-      await db
-        .from('leads')
-        .update({ status: 'suppressed', next_send_at: null, stage_key: 'dnc' })
-        .eq('id', leadId);
+    if (contact) {
+      await suppress(contact.email, contact.workspace_id, 'unsubscribe');
+      await db.from('contacts').update({ stage: 'dnc' }).eq('id', contactId);
     }
     return reply
       .type('text/html')
-      .send(PAGE("You've been unsubscribed. You won't hear from us again."));
+      .send(PAGE("You've been unsubscribed. You won't receive further emails from us."));
   };
 
   // GET for humans clicking the footer link; POST for RFC 8058 one-click.

@@ -4,20 +4,18 @@ import { env } from '../env.js';
 
 export const redis = new IORedis(env.redisUrl, { maxRetriesPerRequest: null });
 
-/** Sends one sequence email to one lead. Job: { leadId: string } */
-export const sendQueue = new Queue('send', { connection: redis });
+/**
+ * Sends one follow-up step email for one appointment.
+ * Job: { appointmentId: string, stepId: string }
+ * jobId convention: fu:<appointmentId>:<stepId> (used for cancellation)
+ */
+export const followupQueue = new Queue('followup', { connection: redis });
 
-/** Processes one inbound reply through the AI agent. Job: { inboundMessageId: string } */
+/** Processes one inbound reply through the triage agent. Job: { inboundMessageId } */
 export const replyQueue = new Queue('reply', { connection: redis });
 
-/** Delayed booking reminders. Job: { appointmentId: string } */
-export const reminderQueue = new Queue('reminder', { connection: redis });
-
-/** Repeatable one-minute scheduler tick. */
-export const tickQueue = new Queue('tick', { connection: redis });
-
-export async function scheduleTick(): Promise<void> {
-  await tickQueue.upsertJobScheduler('scheduler-tick', { every: 60_000 }, { name: 'tick' });
+export function followupJobId(appointmentId: string, stepId: string): string {
+  return `fu:${appointmentId}:${stepId}`;
 }
 
 export const defaultJobOpts = {
