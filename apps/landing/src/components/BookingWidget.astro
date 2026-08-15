@@ -12,6 +12,8 @@
  * The API base URL is rendered server-side into a data attribute so the
  * client script needs no bundler-specific env handling.
  */
+import { PRACTICE_TYPES, PATIENT_FLOW_OPTIONS } from '@implenix/shared';
+
 const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080';
 ---
 
@@ -54,21 +56,25 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
           <p class="bw__error" data-error-for="email" hidden>Please enter a valid email address.</p>
         </div>
         <div class="bw__field">
-          <label for="bw-phone">Phone</label>
-          <input id="bw-phone" name="phone" type="tel" autocomplete="tel" />
+          <label for="bw-phone">Phone <span aria-hidden="true">*</span></label>
+          <input id="bw-phone" name="phone" type="tel" autocomplete="tel" required />
+          <p class="bw__error" data-error-for="phone" hidden>Please enter your phone number.</p>
         </div>
         <div class="bw__field">
-          <label for="bw-practice">Practice name</label>
-          <input id="bw-practice" name="practice" type="text" autocomplete="organization" />
+          <label for="bw-practice-type">Practice type <span aria-hidden="true">*</span></label>
+          <select id="bw-practice-type" name="practice_type" required>
+            <option value="" selected disabled>Select your practice type…</option>
+            {PRACTICE_TYPES.map((t) => <option value={t}>{t}</option>)}
+          </select>
+          <p class="bw__error" data-error-for="practice_type" hidden>Please select your practice type.</p>
         </div>
         <div class="bw__field">
-          <label for="bw-specialty">Specialty</label>
-          <input
-            id="bw-specialty"
-            name="specialty"
-            type="text"
-            placeholder="e.g. Family medicine, mental health, PT/OT"
-          />
+          <label for="bw-patient-flow">Patient flow <span aria-hidden="true">*</span></label>
+          <select id="bw-patient-flow" name="patient_flow" required>
+            <option value="" selected disabled>How many patients per month?</option>
+            {PATIENT_FLOW_OPTIONS.map((o) => <option value={o}>{o}</option>)}
+          </select>
+          <p class="bw__error" data-error-for="patient_flow" hidden>Please select your monthly patient flow.</p>
         </div>
         <div class="bw__field bw__field--full">
           <label for="bw-notes">Anything we should know?</label>
@@ -292,6 +298,10 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
       formStep.hidden = false;
       hideSubmitAlert();
       formStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (!startedTracked) {
+        startedTracked = true;
+        track('booking_started');
+      }
     }
 
     // -- step 3: form + submit ----------------------------------------------
@@ -320,10 +330,36 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 
     function fieldValue(name: string): string {
       const el = form.elements.namedItem(name);
-      return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+      return el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el instanceof HTMLSelectElement
         ? el.value.trim()
         : '';
     }
+
+    // -- first-party analytics beacon ---------------------------------------
+
+    function track(type: string): void {
+      try {
+        const payload = JSON.stringify({
+          type,
+          page: location.pathname,
+          referrer: document.referrer || undefined,
+        });
+        if (!navigator.sendBeacon?.(`${apiUrl}/api/track`, new Blob([payload], { type: 'application/json' }))) {
+          void fetch(`${apiUrl}/api/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch {
+        /* analytics must never break booking */
+      }
+    }
+
+    let startedTracked = false;
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -335,11 +371,23 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 
       const name = fieldValue('name');
       const email = fieldValue('email');
-      const nameOk = name.length > 0;
-      const emailOk = EMAIL_RE.test(email);
-      fieldError('name', !nameOk);
-      fieldError('email', !emailOk);
-      if (!nameOk || !emailOk) return;
+      const phone = fieldValue('phone');
+      const practiceType = fieldValue('practice_type');
+      const patientFlow = fieldValue('patient_flow');
+
+      const checks: Array<[string, boolean]> = [
+        ['name', name.length > 0],
+        ['email', EMAIL_RE.test(email)],
+        ['phone', phone.length >= 5],
+        ['practice_type', practiceType.length > 0],
+        ['patient_flow', patientFlow.length > 0],
+      ];
+      let allOk = true;
+      for (const [field, ok] of checks) {
+        fieldError(field, !ok);
+        if (!ok) allOk = false;
+      }
+      if (!allOk) return;
 
       if (!selectedSlot) {
         showSubmitAlert('Please pick a time first.');
@@ -351,12 +399,13 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         start: slot.start,
         name,
         email,
+        phone,
+        practice_type: practiceType,
+        patient_flow: patientFlow,
         timezone,
       };
-      for (const key of ['phone', 'practice', 'specialty', 'notes']) {
-        const value = fieldValue(key);
-        if (value) payload[key] = value;
-      }
+      const notes = fieldValue('notes');
+      if (notes) payload.notes = notes;
 
       submitBtn.disabled = true;
       const originalLabel = submitBtn.textContent;
@@ -370,6 +419,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         });
 
         if (res.status === 201) {
+          track('booking_completed');
           successWhen.textContent = slotLabel(slot);
           dateStep.hidden = true;
           timeStep.hidden = true;
@@ -582,7 +632,8 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
   }
 
   .bw__field input,
-  .bw__field textarea {
+  .bw__field textarea,
+  .bw__field select {
     width: 100%;
     font: inherit;
     color: var(--ink);
@@ -592,14 +643,20 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     padding: 0.65rem 0.85rem;
   }
 
+  .bw__field select:invalid {
+    color: var(--muted);
+  }
+
   .bw__field input:focus,
-  .bw__field textarea:focus {
+  .bw__field textarea:focus,
+  .bw__field select:focus {
     outline: none;
     border-color: var(--teal-500);
     box-shadow: 0 0 0 3px rgba(15, 163, 163, 0.18);
   }
 
-  .bw__field input[aria-invalid='true'] {
+  .bw__field input[aria-invalid='true'],
+  .bw__field select[aria-invalid='true'] {
     border-color: var(--danger);
   }
 

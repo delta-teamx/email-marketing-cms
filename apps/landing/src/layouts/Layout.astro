@@ -88,6 +88,35 @@ const webSiteLd = {
     <meta name="twitter:image" content={ogImage} />
 
     <slot name="head" />
+
+    <!-- First-party pageview beacon (no cookies, no external services). -->
+    <script is:inline define:vars={{ trackApi: `${import.meta.env.PUBLIC_API_URL ?? ''}/api/track` }}>
+      try {
+        if (trackApi.startsWith('http')) {
+          const utm = {};
+          for (const [k, v] of new URLSearchParams(location.search)) {
+            if (k.startsWith('utm_')) utm[k] = v.slice(0, 200);
+          }
+          const payload = JSON.stringify({
+            type: 'pageview',
+            page: location.pathname,
+            referrer: document.referrer || undefined,
+            utm: Object.keys(utm).length ? utm : undefined,
+          });
+          const blob = new Blob([payload], { type: 'application/json' });
+          if (!(navigator.sendBeacon && navigator.sendBeacon(trackApi, blob))) {
+            fetch(trackApi, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payload,
+              keepalive: true,
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        /* analytics must never break the page */
+      }
+    </script>
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>

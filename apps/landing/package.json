@@ -2,7 +2,7 @@
   "name": "@implenix/landing",
   "private": true,
   "version": "0.1.0",
-  "description": "implenix.net — marketing landing site for Implenix medical billing services (Astro, static)",
+  "description": "implenix.net \u2014 marketing landing site for Implenix medical billing services (Astro, static)",
   "type": "module",
   "scripts": {
     "dev": "astro dev",
@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "astro": "^5.7.0",
-    "@astrojs/sitemap": "^3.3.0"
+    "@astrojs/sitemap": "^3.3.0",
+    "@implenix/shared": "*"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
