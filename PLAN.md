@@ -1,206 +1,165 @@
-# Implenix — Build Plan
+# Implenix — Build Plan v2 (Cold-Calling Pivot)
+
+> **v2 pivot (2026-08):** Cold outreach moves from email to **cold calling by a
+> human SDR** using a built-in Twilio dialer. Email (Resend) is now used only
+> for the post-call funnel: booking confirmations, a reminder ladder, and
+> post-meeting follow-ups/contracts — all transactional or relationship email,
+> fully within Resend's terms. The multi-campaign cold-email machinery
+> (sequences, A/B variants, warm-up, sending subdomains) is removed.
 
 Two products, one platform:
 
-1. **implenix.net** — Marketing landing site for Implenix, a US medical billing agency for practitioners (claims submission, denial prevention/management, faster reimbursements). Includes a **custom Google Calendar booking flow** (no Calendly/Zoom embeds).
-2. **marketing.implenix.net** — A general-purpose, multi-campaign **AI email marketing dashboard**. AI agents send emails, receive replies, classify them, respond using **human-provided copy** (no AI-generated copy), and book appointments — with a GHL-style pipeline and analytics. Medical billing outreach is just the first campaign; the tool is business-category agnostic (local business web design, AI receptionist services, etc.).
+1. **implenix.net** — marketing site + custom Google Calendar booking (LIVE
+   logic, unchanged in this pivot).
+2. **marketing.implenix.net** — the SDR cockpit: dialer, call queue, pipeline,
+   appointment booking, and automated follow-up email — replacing the old
+   campaign dashboard.
 
----
+## 1. What changes
 
-## 1. Confirmed stack
+### Removed (from v1)
+- Multi-campaign system (campaigns, per-campaign copy, A/B variants)
+- Cold-email sequence engine, send scheduler, warm-up ramps, daily caps
+- The three outreach subdomains (e/m/s.implenix.net) — one sending domain
+  (e.g. `mail.implenix.net`) is enough for transactional mail
+- Resend inbound cold-reply classification as the primary agent loop
 
-| Layer | Choice | Notes |
+### Kept (already built / wired)
+- Landing site + custom Google Calendar booking engine (**Google OAuth is
+  already live and tested** — slots 10am–2pm & 3pm–6pm ET, Meet links)
+- Supabase project (schema gets a v2 migration), auth, workspaces
+- Dashboard shell (auth, layout), pipeline board, CSV import, suppression list
+- Resend integration + templates system (repurposed for follow-ups)
+- Reminder job infrastructure (extended to a 4-step ladder)
+- AI reply handling survives in a smaller role: replies to follow-up emails
+  (reschedules, questions) are classified and routed/queued as before
+
+### Added (new build)
+- **Twilio browser dialer** in the dashboard (Voice JS SDK softphone)
+- **Call queue + call screen + dispositions** driving the pipeline
+- **Email-capture → instant booking flow** on the call screen
+- **Reminder ladder**: 24 h → 12 h → 3 h → 10 min before each meeting
+- **Post-meeting follow-ups**: agent-sent templates (incl. contract email)
+
+## 2. The new funnel
+
+```
+CSV import (doctor name, practice, address, phone(s), license number)
+        │
+        ▼
+Call queue — SDR works leads in the browser dialer (click-to-call)
+        │  disposition after every call
+        ├─ No answer / voicemail → auto re-queue (retry after N days, max M tries)
+        ├─ Callback scheduled   → re-queue at the promised time
+        ├─ Not interested       → terminal
+        ├─ DNC                  → suppression (email + phone), terminal
+        └─ Interested
+              │  SDR enters the doctor's email + picks a slot live on the call
+              ▼
+        Meeting booked on Google Calendar (Meet link, invite to doctor)
+              │  instant confirmation email (doctor's info + Meet link)
+              ▼
+        Reminder ladder: T-24h → T-12h → T-3h → T-10min
+              │
+              ▼
+        Meeting happens → SDR marks outcome
+              ├─ Showed → agent sends follow-up / contract email → Negotiating
+              └─ No-show → agent sends "sorry we missed you" + rebook link
+              ▼
+        Sale closed
+```
+
+### Pipeline stages (v2)
+`New → Calling → Callback → Interested → Meeting Booked → Showed →
+Negotiating → Sale Closed` + terminal lanes: `No Answer (exhausted)`,
+`Not Interested`, `DNC`, `Bad Number`.
+
+## 3. Dialer design (Twilio)
+
+- **Browser softphone**: Twilio Voice JS SDK in the dashboard. The API issues
+  short-lived Access Tokens (Voice grant); calls go out through a TwiML App
+  from the purchased Twilio number. SDR needs only a headset and Chrome.
+- **Call screen**: lead card (name, practice, address, license number,
+  phones), dial/hangup/mute/keypad, notes field, disposition buttons, and the
+  booking widget (same engine as the landing page) for live slot picking.
+- **Queue logic**: next-lead auto-advance; no-answer retry policy
+  (default: retry after 2 business days, max 4 attempts → "No Answer
+  (exhausted)"); callbacks surface at their scheduled time.
+- **Call logging**: every call recorded as a row (Twilio SID, duration,
+  disposition, notes, SDR user) via status callbacks — feeds reporting:
+  dials/day, connect rate, interest rate, meetings/100 dials.
+- **No call recording by default.** Florida (and 10 other states) require
+  all-party consent; recording stays off unless explicitly enabled later
+  with a consent script.
+- **Numbers**: start with one Twilio local US number (~$1.15/mo + ~$0.014/min
+  outbound). More numbers/local presence later if connect rates warrant.
+
+## 4. Email's new job (Resend — compliant)
+
+Workspace-level **follow-up templates** (human-written, agent-sent; merge
+tags as before):
+
+| Template | Trigger | Timing |
 |---|---|---|
-| Frontend hosting | **Netlify** | Both sites |
-| Backend hosting | **Render** | API + background workers |
-| Database / Auth | **Supabase** | Postgres, Supabase Auth, RLS, Storage |
-| Email delivery | **Resend** (premium) | Outbound sending + webhooks + inbound receiving |
-| AI | **Claude API** | Reply classification, intent detection, template selection, scheduling negotiation |
-| Calendar | **Google Calendar API** | Custom booking UI on our page; events created directly on the Implenix Workspace calendar (Google Meet link, not Zoom) |
+| Booking confirmation | Meeting booked from call screen (or landing page) | instant |
+| Reminder 24h / 12h / 3h / 10min | Scheduled from `starts_at` | T-24h, T-12h, T-3h, T-10m |
+| Post-meeting follow-up | SDR marks "Showed" | instant |
+| Contract email | SDR clicks "Send contract" | on demand |
+| No-show / rebook | SDR marks "No-show" | instant |
 
-### Repo layout (monorepo, this repo)
+- Reminder ladder = BullMQ delayed jobs keyed per appointment; cancelled
+  bookings cancel their pending reminders. Reminders inside the ladder that
+  are already in the past at booking time are skipped.
+- Inbound replies to these emails still hit the classification agent —
+  reschedule requests and questions are drafted from templates and queued
+  (or auto-sent per the same confidence rules).
+- One verified sending domain: `mail.implenix.net`. No warm-up needed at
+  transactional volumes.
 
-```
-email-marketing-cms/
-├── apps/
-│   ├── landing/        # implenix.net — Astro (static, best SEO) → Netlify
-│   ├── dashboard/      # marketing.implenix.net — React + Vite SPA → Netlify
-│   └── api/            # Node.js (TypeScript, Fastify) + BullMQ workers → Render
-├── packages/
-│   └── shared/         # Shared types, validation schemas, constants
-├── supabase/
-│   └── migrations/     # SQL migrations (schema below)
-└── PLAN.md
-```
+## 5. Data model changes (migration v2)
 
-- **Landing = Astro**: fully static output, perfect Lighthouse/SEO scores, trivial to host on Netlify. The booking widget is a small React island that talks to the API.
-- **Dashboard = React SPA**: authenticated app, SEO irrelevant, fastest to build.
-- **API on Render = Fastify + BullMQ + Render Key-Value (Redis)**: BullMQ gives us the scheduled/throttled send queues, retry logic, and warm-up ramps that an email engine needs. Cron-style repeatable jobs handle sequence steps.
+- `leads` → workspace-level (drop `campaign_id`): add `phones text[]`,
+  `address`, `license_number`, `practice_type`, `call_attempts`,
+  `next_call_at`, `assigned_to`; keep suppression/status.
+- New `calls`: lead_id, sdr user_id, twilio_sid, from/to numbers, started_at,
+  duration_secs, disposition, notes.
+- `pipeline_stages` → workspace-level with the v2 stage set.
+- `followup_templates` (replaces campaign reply/sequence copy): key
+  (confirmation, reminder_24h, reminder_12h, reminder_3h, reminder_10m,
+  post_meeting, contract, no_show), subject, body.
+- `appointments` unchanged + `reminder ladder` job keys + `outcome`
+  (showed / no_show) column.
+- Drop: `campaigns`, `sequence_steps`, `copy_variants`, `reply_templates`
+  (folded into followup_templates), campaign-scoped columns elsewhere.
+- Suppression list covers **emails and phone numbers** (DNC on either).
 
----
+## 6. Dashboard v2 (SDR cockpit)
 
-## 2. Product 1 — implenix.net landing site
+- **Dialer** (new home page): queue, call screen, dispositions, live booking
+- **Pipeline**: kanban with v2 stages (kept, re-pointed)
+- **Leads**: CSV import mapped to the doctor fields (kept, extended)
+- **Appointments**: upcoming meetings, reminder status, outcome buttons,
+  send-contract action
+- **Templates**: follow-up copy editor (kept, simplified)
+- **Approval Inbox**: agent drafts for inbound replies (kept)
+- **Reports**: call + funnel metrics (dials → connects → interested →
+  booked → showed → closed)
 
-### Pages
+## 7. External services after the pivot
 
-| Page | Content |
+| Service | Status |
 |---|---|
-| `/` (Home) | Hero: "Stop losing revenue to claim denials." Services (claims submission, denial management, AR follow-up, credentialing, patient billing support), how-it-works, trust/stats section, FAQ, CTA → Book an appointment |
-| `/book` | Custom booking flow (below) — also embedded as a section/modal on Home |
-| `/privacy-policy` | Legal |
-| `/terms-of-service` | Legal |
-| `/hipaa-notice` (recommended 3rd legal page) | Medical billing clients will expect a HIPAA/BAA statement |
+| Supabase | LIVE — needs v2 migration |
+| Google Calendar | LIVE — tested, no changes |
+| Netlify ×2 | pending (unchanged plan) |
+| Render | pending (unchanged plan) |
+| Resend | one domain, transactional only — policy risk gone |
+| **Twilio** | **new**: account, Account SID + Auth Token (or API key), one US number, TwiML App |
 
-Copy: we draft the site copy (denial-prevention angle, "get paid on time, every time"); client provides the **logo** and brand colors when ready — the site ships with a clean placeholder wordmark until then.
+## 8. Compliance notes (calling)
 
-### On-page SEO
-
-- Semantic HTML, one `h1` per page, meta title/description per page targeting "medical billing services for practitioners", "denial management", etc.
-- OpenGraph + Twitter cards, `sitemap.xml`, `robots.txt`, canonical URLs
-- JSON-LD structured data: `Organization`, `ProfessionalService`, `FAQPage`
-- Core Web Vitals: static Astro output + optimized images → green scores out of the box
-
-### Custom Google Calendar booking (no Calendly, no Zoom)
-
-Flow on `/book`:
-
-1. Widget fetches available slots from our API: `GET /api/booking/slots?date=...`
-2. API checks the Implenix Google Calendar **free/busy** via Google Calendar API (service account with domain-wide delegation on their Workspace, or OAuth refresh token for the calendar owner — decided during setup based on whether they have Google Workspace or plain Gmail).
-3. Business rules applied server-side: working hours, buffer time, min-notice, max-per-day, timezone handling (visitor's local TZ shown).
-4. Visitor picks a slot → fills form (name, practice name, specialty, phone, email, notes).
-5. `POST /api/booking` → creates the Google Calendar event with the visitor as attendee + **Google Meet link auto-attached**, stores the booking in Supabase, sends confirmation email via Resend (branded, with reschedule/cancel links).
-6. Reminder email 24h before (BullMQ delayed job).
-
-This same booking engine is **reused by the AI agents** in Product 2 to book appointments from email conversations — build once, use twice.
-
----
-
-## 3. Product 2 — marketing.implenix.net dashboard
-
-### Core concept
-
-A workspace can run **multiple campaigns**, each fully self-contained:
-
-- Its own **audience** (imported leads), **sending identity** (from-name, from-address, sending domain), **schedule & daily limits**, **copy library**, **AI agent config**, and **pipeline**.
-- Example campaigns: "Medical billing — US practitioners", "Web design — US local businesses", "AI receptionist — dental offices".
-
-### Campaign copy library (human-provided — agents never write copy)
-
-Per campaign, the owner uploads/edits:
-
-- **Sequence steps**: Step 1 initial email, Step 2 follow-up (+N days), Step 3 breakup, etc. Each step: subject line(s) + body variant(s) for A/B rotation, with merge tags (`{{first_name}}`, `{{practice_name}}`, …).
-- **Reply templates by category**: `interested`, `neutral / question`, `not_interested`, `dnc`, plus `out_of_office` and `wrong_person` handling rules.
-- Agents **select and merge-fill** templates; they are explicitly forbidden from free-writing email bodies. (Optional per-campaign toggle later: allow light AI personalization of a template's opening line — off by default.)
-
-### AI agent loop (the "no manual work" engine)
-
-```
-Outbound worker (BullMQ, per campaign):
-  respects daily cap + warm-up ramp + business-hours window + timezone
-  picks next lead → renders step copy with merge tags → sends via Resend
-  → logs message, advances lead to "Contacted"
-
-Resend webhooks → API:
-  delivered / opened / clicked / bounced / complained → event log + lead status
-  hard bounce or complaint → suppress + remove from sequence
-
-Inbound (Resend inbound routing on the sending domain) → API:
-  1. Thread-match reply to lead + campaign
-  2. STOP sequence for that lead immediately
-  3. Claude classifies reply → interested | neutral | not_interested | dnc | ooo | wrong_person
-     (+ extracted data: proposed times, questions asked, referral contact)
-  4. Action per classification:
-     - interested → reply with campaign's "interested" template; if meeting intent
-       detected → agent proposes real slots from Google Calendar free/busy →
-       on confirmation, books the event (reuses landing-page booking engine)
-       → pipeline: "Meeting Booked"
-     - neutral/question → "neutral" template → pipeline: "Replied — Nurturing"
-     - not_interested → polite close template → pipeline: "Not Interested"
-     - dnc → suppression list (global, permanent), confirmation of removal → "DNC"
-     - ooo → snooze and re-queue after return date
-     - wrong_person → close out (referral capture later)
-  5. Every agent action written to an audit log (input, classification,
-     confidence, template used, output)
-```
-
-### Layers of checking (human-in-the-loop, per campaign)
-
-- **Mode switch per campaign**: `Full-auto` / `Review-first` (agent drafts the reply from the template, queues it in an **Approval Inbox**; one click to send or edit).
-- **Confidence threshold**: below X% classification confidence → always route to Approval Inbox regardless of mode.
-- **Always-manual categories** (configurable): e.g. auto-handle everything except `interested` replies, which a human approves.
-- Full **audit trail** view: every email in/out, every classification, every booking.
-
-### Pipeline (GHL-style)
-
-Default stages per campaign (customizable):
-
-`New → Contacted → Opened → Replied → Interested → Meeting Booked → Negotiating → Sale Closed` — plus terminal lanes: `Not Interested`, `DNC`, `Bounced/Bad Email`.
-
-- Kanban board view with drag-and-drop (manual override always allowed) + list view with filters.
-- Leads move automatically as events/classifications occur.
-
-### Analytics
-
-Per campaign and cross-campaign: sent, delivered, open rate, click rate, reply rate, positive-reply rate, meetings booked, closes — as a **funnel view** ("sent 1,000 → 400 opened → 32 replied → 9 interested → 4 meetings → 1 closed") plus per-variant A/B stats (which subject/body wins), and per-step performance, so you can see exactly where to optimize.
-
-### Supabase schema (core tables)
-
-```
-workspaces, workspace_members (Supabase Auth users)
-campaigns              (workspace_id, name, status, mode, daily_cap, warmup config,
-                        sending_domain, from_name, from_email, schedule window, tz)
-sequence_steps         (campaign_id, step_no, delay_days)
-copy_variants          (step_id, subject, body, weight)         -- A/B rotation
-reply_templates        (campaign_id, category, subject, body)
-leads                  (campaign_id, email, first/last name, company, custom_fields
-                        jsonb, stage, sequence position, next_send_at)
-messages               (lead_id, direction, resend_id, thread key, step/template ref,
-                        subject, body, status, timestamps)
-email_events           (message_id, type: delivered|open|click|bounce|complaint, ts)
-agent_actions          (message_id, classification, confidence, extracted jsonb,
-                        template_used, action_taken, approved_by, ts)  -- audit log
-pipeline_stages        (campaign_id, name, order, is_terminal)
-appointments           (lead_id | booking-form source, google_event_id, starts_at,
-                        meet_link, status)
-suppression_list       (workspace_id nullable = global, email, reason, ts)
-```
-
-RLS on everything by workspace; API uses service role, dashboard reads via user JWT where safe.
-
----
-
-## 4. Build phases
-
-**Phase 1 — Landing site (ship first, it's the company's front door)**
-Astro site: all pages + copy + SEO + legal pages. Booking API (Google Calendar free/busy + event creation + confirmation email). Deploy: Netlify (implenix.net) + Render (API) + DNS. *Placeholder logo until client's logo arrives.*
-
-**Phase 2 — Dashboard foundation**
-Supabase schema + RLS + Auth (login). Campaign CRUD, copy library editor (steps, variants, reply templates), CSV lead import with validation/dedupe/suppression check, pipeline board.
-
-**Phase 3 — Sending engine**
-Resend domain setup flow (SPF/DKIM/DMARC verification status surfaced in UI), BullMQ send scheduler with daily caps + warm-up ramp + send-window, merge-tag rendering, open/click tracking, webhook ingestion, bounce/complaint suppression, live analytics.
-
-**Phase 4 — Inbound + AI agents**
-Resend inbound routing, thread matching, sequence auto-stop on reply, Claude classification, template auto-replies, DNC handling, Approval Inbox + confidence thresholds + audit log.
-
-**Phase 5 — Booking agent + polish**
-Meeting-intent detection → slot proposal → booking via the shared calendar engine, reminders, funnel/A-B analytics views, cross-campaign overview, close-out reporting.
-
-Each phase is independently shippable; Phase 1 has no dependency on the dashboard at all.
-
----
-
-## 5. Risks & decisions to confirm
-
-1. **Cold outreach on Resend** ⚠️ — Resend's acceptable-use policy is strict about unsolicited cold email; accounts get suspended for high complaint rates. Mitigations we'll build in regardless (separate sending domains — e.g. `implenixmail.com`, never the root domain; warm-up ramps; low daily caps per mailbox; mandatory unsubscribe link + one-click List-Unsubscribe header; instant DNC/suppression). **Confirm**: volume expectations per campaign, and whether the premium plan/discussion with Resend covers this use. If Resend proves restrictive, the send layer is isolated behind one interface so a cold-email-friendly SMTP provider can be swapped in without touching the rest.
-2. **CAN-SPAM compliance** — physical postal address in footer, truthful subject lines, working opt-out honored within 10 days. Built into the send pipeline, not optional.
-3. **Google Calendar auth model** — does Implenix use Google Workspace (→ service account with domain-wide delegation) or a plain Gmail account (→ OAuth refresh token)? Needed before Phase 1 booking work.
-4. **Assets needed from client**: logo + brand colors, company postal address (legal pages + CAN-SPAM footer), the sending domain(s) to purchase, campaign copy for the first medical-billing campaign.
-5. **Claude API key** — under whose account, and monthly budget for classification volume (cheap: Haiku-class model handles classification well at ~fractions of a cent per reply).
-
----
-
-## 6. What "done" looks like
-
-- implenix.net live on Netlify: fast, SEO-clean, with working custom Google Calendar booking and confirmation/reminder emails.
-- marketing.implenix.net live: log in → create a campaign → paste your copy → import leads → enable the agent → watch the pipeline fill and the funnel report where to optimize — with zero manual sending, replying, or booking unless you switch a campaign to Review-first mode.
+- B2B calls to medical practices: keep an internal phone DNC list (honored
+  automatically by the dialer queue) and honor verbal opt-outs immediately.
+- No recording without all-party consent (off by default).
+- Emails remain transactional/relationship — CAN-SPAM footer + unsubscribe
+  stay on everything anyway.
