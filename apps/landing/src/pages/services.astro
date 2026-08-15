@@ -1,0 +1,366 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const services = [
+  {
+    title: 'Eligibility & benefits verification',
+    body: 'Every patient is verified before the visit: active coverage, copays, deductibles, coinsurance, and whether the planned service needs a prior authorization. Eligibility problems are the most preventable denial there is — and the most common. Catching them before the encounter means fewer denials, fewer surprise patient balances, and a front desk that can quote costs with confidence.',
+    points: [
+      'Coverage and benefits checked ahead of every scheduled visit',
+      'Authorization requirements flagged before the service is rendered',
+      'Patient responsibility estimated up front, not discovered later',
+    ],
+  },
+  {
+    title: 'Medical coding',
+    body: 'Accurate CPT, ICD-10, and HCPCS coding is the single biggest lever on your denial rate. We review documentation against current payer guidelines, apply the right modifiers, and keep up with the annual code and policy changes so your claims reflect the work you actually did — no more, no less. Undercoding quietly costs you revenue; overcoding invites audits. We aim for neither.',
+    points: [
+      'CPT / ICD-10 review against current payer policy before submission',
+      'Correct modifier usage — 25, 59, KX, and the specialty-specific rest',
+      'Feedback to providers when documentation leaves money on the table',
+    ],
+  },
+  {
+    title: 'Claims submission & scrubbing',
+    body: 'Before a claim leaves our desk, it is scrubbed against payer-specific rules: patient demographics, policy numbers, NPI and taxonomy data, code combinations, and payer edits. Claims go out clean and fast — our standard is submission within 48 hours of receiving the encounter — because a denial you prevent is worth far more than a denial you win on appeal.',
+    points: [
+      'Payer-specific edits applied before submission, not after rejection',
+      '48-hour submission standard from receipt of encounter',
+      'Rejections from clearinghouses corrected and resubmitted same cycle',
+    ],
+  },
+  {
+    title: 'Denial management & appeals',
+    body: 'Denials get worked, not written off. Each one is traced to its root cause — coding, eligibility, authorization, timely filing, bundling — then corrected, appealed with the documentation payers actually respond to, and resubmitted. Just as important, we fix the upstream process so the same denial stops recurring. That is revenue you already earned, recovered.',
+    points: [
+      'Every denial worked — no silent write-offs by default',
+      'Appeals built with payer-specific documentation requirements',
+      'Root-cause fixes so denial patterns shrink month over month',
+    ],
+  },
+  {
+    title: 'AR follow-up',
+    body: 'Unpaid claims do not age quietly on our watch. We work your accounts receivable on a schedule — payer calls, status checks, corrected claims, and escalations — until each claim is paid or genuinely closed with a documented reason. AR over 90 days is where practice revenue goes to die; disciplined follow-up is how it comes back.',
+    points: [
+      'Aging AR worked on a defined cadence, oldest and largest first',
+      'Payer follow-up documented, so you always know claim status',
+      'Underpayments checked against your contracted rates and disputed',
+    ],
+  },
+  {
+    title: 'Provider credentialing',
+    body: 'Enrollment and re-credentialing handled end to end: initial applications, CAQH profile upkeep, payer follow-up, revalidations, and adding new providers or locations to existing contracts. Credentialing delays are billing delays — every week a provider is out of network is revenue you cannot recover — so we track every application until you are in network and billable.',
+    points: [
+      'Initial enrollment, revalidation, and re-credentialing with payers',
+      'CAQH attestations and document expirations tracked for you',
+      'Status follow-up until the effective date is confirmed in writing',
+    ],
+  },
+  {
+    title: 'Payment posting & reporting',
+    body: 'ERAs and EOBs are posted accurately and reconciled against deposits, with adjustments applied per your contracts — and underpayments flagged instead of absorbed. Then we tell you what it all means: monthly reporting on charges, collections, denials by reason, and AR aging by payer, in plain language you can read in ten minutes.',
+    points: [
+      'Electronic and paper remits posted and reconciled to deposits',
+      'Underpayments flagged against contracted rates',
+      'Monthly reporting: charges, collections, denial reasons, AR aging',
+    ],
+  },
+  {
+    title: 'Patient billing support',
+    body: 'Patients get clear, accurate statements and a professional, patient-friendly point of contact for balance questions — so billing conversations never land on your front desk or sour the relationship with your practice. Statements go out on a consistent cycle, and every balance reflects verified insurance processing first.',
+    points: [
+      'Clear statements only after insurance has fully processed',
+      'Courteous support for patient balance questions',
+      'Consistent statement cycles, so balances do not pile up unnoticed',
+    ],
+  },
+];
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://implenix.net/' },
+    { '@type': 'ListItem', position: 2, name: 'Services', item: 'https://implenix.net/services' },
+  ],
+};
+
+const servicesLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Implenix medical billing services',
+  itemListElement: services.map((s, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'Service',
+      name: s.title,
+      description: s.body,
+      provider: { '@id': 'https://implenix.net/#organization' },
+      areaServed: { '@type': 'Country', name: 'United States' },
+    },
+  })),
+};
+---
+
+<Layout
+  title="Medical Billing Services — Implenix"
+  description="The eight services that make up a complete revenue cycle: eligibility verification, medical coding, claims scrubbing, denial management, AR follow-up, credentialing, payment posting, and patient billing — priced as a percentage of collections."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(servicesLd)} />
+  </Fragment>
+
+  <!-- Page hero -->
+  <section class="page-hero">
+    <div class="container page-hero__inner">
+      <span class="kicker">Services</span>
+      <h1>Everything a billing department does — without hiring one</h1>
+      <p>
+        Eight services, one accountable team. Take any of them on its own, or
+        hand us the whole revenue cycle and stop chasing claims for good. We
+        work inside your existing EHR and practice management system — no
+        migration, no new software for your staff.
+      </p>
+    </div>
+  </section>
+
+  <!-- Service detail sections -->
+  <section class="section">
+    <div class="container">
+      <div class="service-list">
+        {services.map((s, i) => (
+          <article class={`service ${i % 2 === 1 ? 'service--reverse' : ''}`}>
+            <div class="service__copy">
+              <span class="service__num" aria-hidden="true">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <h2>{s.title}</h2>
+              <p>{s.body}</p>
+            </div>
+            <ul class="service__points">
+              {s.points.map((p) => (
+                <li>
+                  <span class="service__tick" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5"></path>
+                    </svg>
+                  </span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section section--alt" id="pricing">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Pricing</span>
+        <h2>How pricing works</h2>
+        <p>
+          One simple model, designed so our incentives are aligned with yours.
+        </p>
+      </div>
+      <div class="pricing-grid">
+        <article class="card">
+          <h3>A percentage of collections</h3>
+          <p>
+            You pay a percentage of what we actually collect for you each
+            month. The exact rate depends on your specialty, claim volume, and
+            payer mix — we quote it after a short review of your current
+            billing.
+          </p>
+        </article>
+        <article class="card">
+          <h3>You only pay when you get paid</h3>
+          <p>
+            No collections, no fee. There are no per-claim charges, no setup
+            fees hidden in month three, and no invoice that grows while your
+            deposits shrink. We only do well when you do.
+          </p>
+        </article>
+        <article class="card">
+          <h3>No long-term lock-ins</h3>
+          <p>
+            We earn the engagement every month. There are no multi-year
+            contracts and no exit penalties — and your data stays in your
+            systems, so you are never held hostage by your own billing.
+          </p>
+        </article>
+      </div>
+      <p class="pricing-note">
+        Want a number? <a href="/book">Book a call</a> — after a short look at
+        your denials, AR, and payer mix, we will quote you plainly.
+      </p>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <div class="container final-cta__inner">
+      <h2>See which of these your practice actually needs</h2>
+      <p>
+        Book a free 30-minute call. We will look at how your practice bills
+        today and tell you plainly what we would do differently — no
+        obligation, no pressure.
+      </p>
+      <a href="/book" class="btn btn--light btn--lg">Book a call</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Page hero -------------------------------------------------------------- */
+  .page-hero {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, rgba(15, 163, 163, 0.14), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-hero__inner {
+    max-width: 50rem;
+    text-align: center;
+    padding-block: clamp(3rem, 7vw, 5.5rem);
+  }
+
+  .page-hero p {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Service sections ------------------------------------------------------- */
+  .service-list {
+    display: grid;
+    gap: clamp(2.5rem, 6vw, 4.5rem);
+  }
+
+  .service {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: clamp(1.75rem, 4vw, 3.5rem);
+    align-items: center;
+    padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .service:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .service--reverse .service__copy {
+    order: 2;
+  }
+
+  .service__num {
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    color: var(--teal-600);
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: 999px;
+    padding: 0.25rem 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .service__copy h2 {
+    font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+  }
+
+  .service__copy p {
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .service__points {
+    list-style: none;
+    margin: 0;
+    padding: 1.5rem;
+    display: grid;
+    gap: 0.9rem;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-size: 0.95rem;
+    color: var(--navy-800);
+  }
+
+  .service__points li {
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+
+  .service__tick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    background: var(--teal-100);
+    color: var(--teal-600);
+    transform: translateY(0.2rem);
+  }
+
+  @media (max-width: 820px) {
+    .service {
+      grid-template-columns: 1fr;
+    }
+
+    .service--reverse .service__copy {
+      order: 0;
+    }
+  }
+
+  /* Pricing ---------------------------------------------------------------- */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .pricing-note {
+    text-align: center;
+    color: var(--muted);
+    margin: 2.25rem 0 0;
+  }
+
+  /* Final CTA -------------------------------------------------------------- */
+  .final-cta {
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+  }
+
+  .final-cta__inner {
+    text-align: center;
+    padding-block: clamp(3.5rem, 8vw, 5.5rem);
+    max-width: 42rem;
+  }
+
+  .final-cta h2 {
+    color: #fff;
+  }
+
+  .final-cta p {
+    color: var(--navy-100);
+    font-size: 1.15rem;
+    margin-bottom: 2rem;
+  }
+</style>

@@ -1,16 +1,13 @@
 ---
 /**
- * Custom booking widget — plain TypeScript island, no framework.
+ * Calendly-style booking widget — plain TypeScript island, no framework.
  *
  * API contract (see packages/shared):
- *   GET  {PUBLIC_API_URL}/api/booking/slots?date=YYYY-MM-DD&tz={IANA}
- *        -> { slots: [{ start: ISO-UTC, end: ISO-UTC }] }
- *   POST {PUBLIC_API_URL}/api/booking
- *        JSON { start, name, email, phone?, practice?, specialty?, notes?, timezone }
+ *   GET  {API}/api/booking/days?month=YYYY-MM&tz={IANA} -> { days: ["YYYY-MM-DD", …] }
+ *   GET  {API}/api/booking/slots?date=YYYY-MM-DD&tz={IANA} -> { slots: [{start,end}] }
+ *   POST {API}/api/booking
+ *        JSON { start, name, email, phone, practice_type, patient_flow, notes?, timezone }
  *        -> 201 { id, start, end, meetLink } | 409 { error: "slot_taken" } | 400
- *
- * The API base URL is rendered server-side into a data attribute so the
- * client script needs no bundler-specific env handling.
  */
 import { PRACTICE_TYPES, PATIENT_FLOW_OPTIONS } from '@implenix/shared';
 
@@ -18,93 +15,125 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 ---
 
 <div class="bw" id="booking-widget" data-api-url={apiUrl}>
-  <!-- Step 1: date -->
-  <section class="bw__step" data-bw="date-step" aria-labelledby="bw-date-heading">
-    <h2 id="bw-date-heading" class="bw__step-title">
-      <span class="bw__step-num" aria-hidden="true">1</span> Pick a day
-    </h2>
-    <p class="bw__tz" data-bw="tz-note">Times are shown in your local timezone.</p>
-    <div class="bw__dates" data-bw="dates" role="group" aria-label="Available days"></div>
-  </section>
+  <!-- Left: event info panel -->
+  <aside class="bw__info">
+    <p class="bw__brand">Implenix</p>
+    <h2 class="bw__event">Intro Call — Billing Review</h2>
+    <ul class="bw__meta">
+      <li>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        30 min
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 9-6 3 6 3z"/></svg>
+        Google Meet — link arrives by email
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span data-bw="tz-note">Your local timezone</span>
+      </li>
+    </ul>
+    <p class="bw__desc">
+      A working session about your practice's billing — denials, AR, and where
+      revenue is leaking. No obligation.
+    </p>
+  </aside>
 
-  <!-- Step 2: time -->
-  <section class="bw__step" data-bw="time-step" hidden aria-labelledby="bw-time-heading">
-    <h2 id="bw-time-heading" class="bw__step-title">
-      <span class="bw__step-num" aria-hidden="true">2</span> Pick a time
-    </h2>
-    <div class="bw__status" data-bw="time-status" hidden></div>
-    <div class="bw__times" data-bw="times" role="group" aria-label="Available times"></div>
-  </section>
-
-  <!-- Step 3: details -->
-  <section class="bw__step" data-bw="form-step" hidden aria-labelledby="bw-form-heading">
-    <h2 id="bw-form-heading" class="bw__step-title">
-      <span class="bw__step-num" aria-hidden="true">3</span> Your details
-    </h2>
-    <p class="bw__chosen" data-bw="chosen-slot"></p>
-
-    <form data-bw="form" novalidate>
-      <div class="bw__grid">
-        <div class="bw__field">
-          <label for="bw-name">Full name <span aria-hidden="true">*</span></label>
-          <input id="bw-name" name="name" type="text" autocomplete="name" required />
-          <p class="bw__error" data-error-for="name" hidden>Please enter your name.</p>
+  <!-- Right: calendar → times → form → success -->
+  <div class="bw__main">
+    <!-- Calendar + times -->
+    <section class="bw__pick" data-bw="pick-view" aria-labelledby="bw-pick-heading">
+      <h3 id="bw-pick-heading" class="bw__heading">Select a Date &amp; Time</h3>
+      <div class="bw__pick-cols" data-bw="pick-cols">
+        <div class="bw__calendar">
+          <div class="bw__month-nav">
+            <button type="button" class="bw__month-btn" data-bw="prev-month" aria-label="Previous month">‹</button>
+            <span class="bw__month-label" data-bw="month-label" aria-live="polite"></span>
+            <button type="button" class="bw__month-btn" data-bw="next-month" aria-label="Next month">›</button>
+          </div>
+          <div class="bw__weekdays" aria-hidden="true" data-bw="weekdays"></div>
+          <div class="bw__days" data-bw="days" role="grid" aria-label="Choose a day"></div>
+          <p class="bw__cal-status" data-bw="cal-status" hidden></p>
         </div>
-        <div class="bw__field">
-          <label for="bw-email">Email <span aria-hidden="true">*</span></label>
-          <input id="bw-email" name="email" type="email" autocomplete="email" required />
-          <p class="bw__error" data-error-for="email" hidden>Please enter a valid email address.</p>
-        </div>
-        <div class="bw__field">
-          <label for="bw-phone">Phone <span aria-hidden="true">*</span></label>
-          <input id="bw-phone" name="phone" type="tel" autocomplete="tel" required />
-          <p class="bw__error" data-error-for="phone" hidden>Please enter your phone number.</p>
-        </div>
-        <div class="bw__field">
-          <label for="bw-practice-type">Practice type <span aria-hidden="true">*</span></label>
-          <select id="bw-practice-type" name="practice_type" required>
-            <option value="" selected disabled>Select your practice type…</option>
-            {PRACTICE_TYPES.map((t) => <option value={t}>{t}</option>)}
-          </select>
-          <p class="bw__error" data-error-for="practice_type" hidden>Please select your practice type.</p>
-        </div>
-        <div class="bw__field">
-          <label for="bw-patient-flow">Patient flow <span aria-hidden="true">*</span></label>
-          <select id="bw-patient-flow" name="patient_flow" required>
-            <option value="" selected disabled>How many patients per month?</option>
-            {PATIENT_FLOW_OPTIONS.map((o) => <option value={o}>{o}</option>)}
-          </select>
-          <p class="bw__error" data-error-for="patient_flow" hidden>Please select your monthly patient flow.</p>
-        </div>
-        <div class="bw__field bw__field--full">
-          <label for="bw-notes">Anything we should know?</label>
-          <textarea
-            id="bw-notes"
-            name="notes"
-            rows="3"
-            placeholder="Current biller, EHR/PM system, biggest billing headache…"></textarea>
+        <div class="bw__times-col" data-bw="times-col" hidden>
+          <p class="bw__times-day" data-bw="times-day"></p>
+          <div class="bw__times-status" data-bw="time-status" hidden></div>
+          <div class="bw__times" data-bw="times" role="group" aria-label="Available times"></div>
         </div>
       </div>
+    </section>
 
-      <div class="bw__alert" data-bw="submit-alert" role="alert" hidden></div>
-
-      <button type="submit" class="btn btn--primary btn--lg bw__submit" data-bw="submit">
-        Confirm booking
+    <!-- Details form -->
+    <section class="bw__form-view" data-bw="form-view" hidden aria-labelledby="bw-form-heading">
+      <button type="button" class="bw__back" data-bw="back" aria-label="Back to calendar">
+        ‹ Back
       </button>
-    </form>
-  </section>
+      <h3 id="bw-form-heading" class="bw__heading">Enter Details</h3>
+      <p class="bw__chosen" data-bw="chosen-slot"></p>
 
-  <!-- Success -->
-  <section class="bw__success" data-bw="success" hidden aria-labelledby="bw-success-heading">
-    <span class="bw__success-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 6 9 17l-5-5"></path>
-      </svg>
-    </span>
-    <h2 id="bw-success-heading">You're booked!</h2>
-    <p class="bw__success-when" data-bw="success-when"></p>
-    <p>A Google Meet link is on its way to your inbox.</p>
-  </section>
+      <form data-bw="form" novalidate>
+        <div class="bw__grid">
+          <div class="bw__field">
+            <label for="bw-name">Full name <span aria-hidden="true">*</span></label>
+            <input id="bw-name" name="name" type="text" autocomplete="name" required />
+            <p class="bw__error" data-error-for="name" hidden>Please enter your name.</p>
+          </div>
+          <div class="bw__field">
+            <label for="bw-email">Email <span aria-hidden="true">*</span></label>
+            <input id="bw-email" name="email" type="email" autocomplete="email" required />
+            <p class="bw__error" data-error-for="email" hidden>Please enter a valid email address.</p>
+          </div>
+          <div class="bw__field">
+            <label for="bw-phone">Phone <span aria-hidden="true">*</span></label>
+            <input id="bw-phone" name="phone" type="tel" autocomplete="tel" required />
+            <p class="bw__error" data-error-for="phone" hidden>Please enter your phone number.</p>
+          </div>
+          <div class="bw__field">
+            <label for="bw-practice-type">Practice type <span aria-hidden="true">*</span></label>
+            <select id="bw-practice-type" name="practice_type" required>
+              <option value="" selected disabled>Select your practice type…</option>
+              {PRACTICE_TYPES.map((t) => <option value={t}>{t}</option>)}
+            </select>
+            <p class="bw__error" data-error-for="practice_type" hidden>Please select your practice type.</p>
+          </div>
+          <div class="bw__field">
+            <label for="bw-patient-flow">Patient flow <span aria-hidden="true">*</span></label>
+            <select id="bw-patient-flow" name="patient_flow" required>
+              <option value="" selected disabled>How many patients per month?</option>
+              {PATIENT_FLOW_OPTIONS.map((o) => <option value={o}>{o}</option>)}
+            </select>
+            <p class="bw__error" data-error-for="patient_flow" hidden>Please select your monthly patient flow.</p>
+          </div>
+          <div class="bw__field bw__field--full">
+            <label for="bw-notes">Anything we should know?</label>
+            <textarea
+              id="bw-notes"
+              name="notes"
+              rows="3"
+              placeholder="Current biller, EHR/PM system, biggest billing headache…"></textarea>
+          </div>
+        </div>
+
+        <div class="bw__alert" data-bw="submit-alert" role="alert" hidden></div>
+
+        <button type="submit" class="btn btn--primary btn--lg bw__submit" data-bw="submit">
+          Schedule Event
+        </button>
+      </form>
+    </section>
+
+    <!-- Success -->
+    <section class="bw__success" data-bw="success" hidden aria-labelledby="bw-success-heading">
+      <span class="bw__success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6 9 17l-5-5"></path>
+        </svg>
+      </span>
+      <h3>You're booked!</h3>
+      <p class="bw__success-when" data-bw="success-when"></p>
+      <p>A calendar invite with a Google Meet link is on its way to your inbox.</p>
+    </section>
+  </div>
 
   <noscript>
     <p class="bw__alert">
@@ -136,101 +165,229 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     };
 
     const tzNote = $('tz-note');
-    const datesEl = $('dates');
-    const timeStep = $('time-step');
+    const pickView = $('pick-view');
+    const monthLabel = $('month-label');
+    const prevBtn = $<HTMLButtonElement>('prev-month');
+    const nextBtn = $<HTMLButtonElement>('next-month');
+    const weekdaysEl = $('weekdays');
+    const daysEl = $('days');
+    const calStatus = $('cal-status');
+    const timesCol = $('times-col');
+    const timesDay = $('times-day');
     const timeStatus = $('time-status');
     const timesEl = $('times');
-    const formStep = $('form-step');
+    const formView = $('form-view');
+    const backBtn = $('back');
     const chosenSlotEl = $('chosen-slot');
     const form = $<HTMLFormElement>('form');
     const submitBtn = $<HTMLButtonElement>('submit');
     const submitAlert = $('submit-alert');
     const successEl = $('success');
     const successWhen = $('success-when');
-    const dateStep = $('date-step');
 
+    let viewYear = 0;
+    let viewMonth = 0; // 0-based
     let selectedDate: string | null = null; // YYYY-MM-DD
     let selectedSlot: Slot | null = null;
     let fetchSeq = 0;
+    const monthCache = new Map<string, string[] | 'error'>();
 
-    tzNote.textContent = `Times are shown in your local timezone (${timezone.replace(/_/g, ' ')}), detected automatically.`;
+    tzNote.textContent = timezone.replace(/_/g, ' ');
 
     // -- formatting helpers -------------------------------------------------
 
-    const dayChipFmt = new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      month: 'short',
+    const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+    const longDayFmt = new Intl.DateTimeFormat(undefined, {
+      weekday: 'long',
+      month: 'long',
       day: 'numeric',
     });
-    const longDayFmt = new Intl.DateTimeFormat(undefined, {
+    const fullFmt = new Intl.DateTimeFormat(undefined, {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     });
-    const timeFmt = new Intl.DateTimeFormat(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+    const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 
-    function toDateKey(d: Date): string {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+    function pad(n: number): string {
+      return String(n).padStart(2, '0');
+    }
+
+    function monthKey(y: number, m: number): string {
+      return `${y}-${pad(m + 1)}`;
+    }
+
+    function dateFromKey(key: string): Date {
+      const [y, m, d] = key.split('-').map(Number);
+      return new Date(y, m - 1, d, 12); // noon avoids DST edge weirdness
     }
 
     function slotLabel(slot: Slot): string {
       const start = new Date(slot.start);
-      return `${longDayFmt.format(start)} at ${timeFmt.format(start)}`;
+      return `${timeFmt.format(start)}, ${fullFmt.format(start)}`;
     }
 
-    // -- step 1: date chips -------------------------------------------------
+    // -- analytics beacon ---------------------------------------------------
 
-    function renderDateChips(): void {
-      datesEl.textContent = '';
-      const today = new Date();
-      for (let offset = 1; offset <= 14; offset++) {
-        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
-        const dow = d.getDay();
-        if (dow === 0 || dow === 6) continue; // skip weekends
-        const key = toDateKey(d);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'bw__chip';
-        btn.textContent = dayChipFmt.format(d);
-        btn.setAttribute('aria-pressed', 'false');
-        btn.dataset.date = key;
-        btn.addEventListener('click', () => selectDate(key, btn));
-        datesEl.appendChild(btn);
+    function track(type: string): void {
+      try {
+        const payload = JSON.stringify({
+          type,
+          page: location.pathname,
+          referrer: document.referrer || undefined,
+        });
+        const blob = new Blob([payload], { type: 'application/json' });
+        if (!navigator.sendBeacon?.(`${apiUrl}/api/track`, blob)) {
+          void fetch(`${apiUrl}/api/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch {
+        /* analytics must never break booking */
       }
     }
 
-    function selectDate(key: string, chip: HTMLButtonElement): void {
+    let startedTracked = false;
+
+    // -- month grid ---------------------------------------------------------
+
+    // Sunday-first weekday header (matches Calendly).
+    (() => {
+      const base = new Date(2023, 0, 1); // a Sunday
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+        const cell = document.createElement('span');
+        cell.textContent = weekdayFmt.format(d).slice(0, 3).toUpperCase();
+        weekdaysEl.appendChild(cell);
+      }
+    })();
+
+    const today = new Date();
+    const maxMonthDate = new Date(today.getFullYear(), today.getMonth() + 2, 1);
+
+    function canGoPrev(): boolean {
+      return viewYear > today.getFullYear() ||
+        (viewYear === today.getFullYear() && viewMonth > today.getMonth());
+    }
+
+    function canGoNext(): boolean {
+      return viewYear < maxMonthDate.getFullYear() ||
+        (viewYear === maxMonthDate.getFullYear() && viewMonth < maxMonthDate.getMonth());
+    }
+
+    async function loadMonth(y: number, m: number): Promise<string[] | 'error'> {
+      const key = monthKey(y, m);
+      const cached = monthCache.get(key);
+      if (cached && cached !== 'error') return cached;
+      try {
+        const res = await fetch(
+          `${apiUrl}/api/booking/days?month=${key}&tz=${encodeURIComponent(timezone)}`,
+          { headers: { Accept: 'application/json' } },
+        );
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { days?: string[] };
+        const days = Array.isArray(data.days) ? data.days : [];
+        monthCache.set(key, days);
+        return days;
+      } catch {
+        monthCache.set(key, 'error');
+        return 'error';
+      }
+    }
+
+    async function renderMonth(): Promise<void> {
+      const seq = ++fetchSeq;
+      monthLabel.textContent = monthFmt.format(new Date(viewYear, viewMonth, 1));
+      prevBtn.disabled = !canGoPrev();
+      nextBtn.disabled = !canGoNext();
+      daysEl.textContent = '';
+      calStatus.hidden = false;
+      calStatus.className = 'bw__cal-status bw__cal-status--loading';
+      calStatus.textContent = 'Checking availability…';
+
+      const available = await loadMonth(viewYear, viewMonth);
+      if (seq !== fetchSeq) return;
+
+      if (available === 'error') {
+        calStatus.className = 'bw__cal-status bw__cal-status--error';
+        calStatus.textContent = "We couldn't reach the live calendar. ";
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'bw__retry';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+          monthCache.delete(monthKey(viewYear, viewMonth));
+          void renderMonth();
+        });
+        calStatus.appendChild(retry);
+        return;
+      }
+
+      calStatus.hidden = true;
+      const availableSet = new Set(available);
+      const firstDow = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sun
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      for (let i = 0; i < firstDow; i++) {
+        daysEl.appendChild(document.createElement('span'));
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bw__day';
+        btn.textContent = String(d);
+        if (key === todayKey) btn.classList.add('is-today');
+        if (availableSet.has(key)) {
+          btn.classList.add('is-available');
+          btn.setAttribute('aria-pressed', String(key === selectedDate));
+          if (key === selectedDate) btn.classList.add('is-selected');
+          btn.addEventListener('click', () => selectDate(key));
+        } else {
+          btn.disabled = true;
+        }
+        daysEl.appendChild(btn);
+      }
+
+      if (available.length === 0) {
+        calStatus.hidden = false;
+        calStatus.className = 'bw__cal-status';
+        calStatus.textContent = 'No open days this month — try the next month.';
+      }
+    }
+
+    function selectDate(key: string): void {
       selectedDate = key;
       selectedSlot = null;
-      for (const el of datesEl.querySelectorAll<HTMLButtonElement>('.bw__chip')) {
-        const active = el === chip;
+      for (const el of daysEl.querySelectorAll<HTMLButtonElement>('.bw__day.is-available')) {
+        const active = el.textContent === String(Number(key.slice(8)));
         el.classList.toggle('is-selected', active);
         el.setAttribute('aria-pressed', String(active));
       }
-      formStep.hidden = true;
-      timeStep.hidden = false;
+      timesCol.hidden = false;
+      timesDay.textContent = longDayFmt.format(dateFromKey(key));
+      root.classList.add('bw--times-open');
       void loadSlots(key);
     }
 
-    // -- step 2: slots ------------------------------------------------------
+    // -- times --------------------------------------------------------------
 
-    function setTimeStatus(kind: 'loading' | 'empty' | 'error' | null, msg = ''): void {
+    function setTimeStatus(kind: 'loading' | 'empty' | 'error' | 'info' | null, msg = ''): void {
       timesEl.textContent = '';
       if (kind === null) {
         timeStatus.hidden = true;
         timeStatus.textContent = '';
-        timeStatus.className = 'bw__status';
+        timeStatus.className = 'bw__times-status';
         return;
       }
       timeStatus.hidden = false;
-      timeStatus.className = `bw__status bw__status--${kind}`;
+      timeStatus.className = `bw__times-status bw__times-status--${kind}`;
       timeStatus.textContent = msg;
       if (kind === 'error') {
         const retry = document.createElement('button');
@@ -246,7 +403,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 
     async function loadSlots(date: string): Promise<Slot[]> {
       const seq = ++fetchSeq;
-      setTimeStatus('loading', 'Checking open times…');
+      setTimeStatus('loading', 'Loading times…');
       try {
         const res = await fetch(
           `${apiUrl}/api/booking/slots?date=${encodeURIComponent(date)}&tz=${encodeURIComponent(timezone)}`,
@@ -255,9 +412,9 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         if (!res.ok) throw new Error(`slots request failed (${res.status})`);
         const data = (await res.json()) as { slots?: Slot[] };
         const slots = Array.isArray(data.slots) ? data.slots : [];
-        if (seq !== fetchSeq) return slots; // stale response, a newer date was picked
+        if (seq !== fetchSeq) return slots;
         if (slots.length === 0) {
-          setTimeStatus('empty', 'No open times this day. Try another day.');
+          setTimeStatus('empty', 'No open times this day — pick another day.');
         } else {
           setTimeStatus(null);
           renderSlots(slots);
@@ -265,10 +422,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         return slots;
       } catch {
         if (seq === fetchSeq) {
-          setTimeStatus(
-            'error',
-            "We couldn't load open times. Check your connection and",
-          );
+          setTimeStatus('error', "We couldn't load times.");
         }
         return [];
       }
@@ -279,32 +433,32 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
       for (const slot of slots) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'bw__chip bw__chip--time';
+        btn.className = 'bw__time';
         btn.textContent = timeFmt.format(new Date(slot.start));
-        btn.setAttribute('aria-pressed', 'false');
-        btn.addEventListener('click', () => selectSlot(slot, btn));
+        btn.addEventListener('click', () => selectSlot(slot));
         timesEl.appendChild(btn);
       }
     }
 
-    function selectSlot(slot: Slot, chip: HTMLButtonElement): void {
+    function selectSlot(slot: Slot): void {
       selectedSlot = slot;
-      for (const el of timesEl.querySelectorAll<HTMLButtonElement>('.bw__chip')) {
-        const active = el === chip;
-        el.classList.toggle('is-selected', active);
-        el.setAttribute('aria-pressed', String(active));
-      }
-      chosenSlotEl.textContent = `Booking a 30-minute call: ${slotLabel(slot)}`;
-      formStep.hidden = false;
+      chosenSlotEl.textContent = slotLabel(slot);
+      pickView.hidden = true;
+      formView.hidden = false;
       hideSubmitAlert();
-      formStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      formView.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       if (!startedTracked) {
         startedTracked = true;
         track('booking_started');
       }
     }
 
-    // -- step 3: form + submit ----------------------------------------------
+    backBtn.addEventListener('click', () => {
+      formView.hidden = true;
+      pickView.hidden = false;
+    });
+
+    // -- form + submit ------------------------------------------------------
 
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -312,9 +466,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
       const err = root.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
       const input = form.elements.namedItem(name);
       if (err) err.hidden = !show;
-      if (input instanceof HTMLElement) {
-        input.setAttribute('aria-invalid', String(show));
-      }
+      if (input instanceof HTMLElement) input.setAttribute('aria-invalid', String(show));
     }
 
     function showSubmitAlert(message: string, kind: 'error' | 'info' = 'error'): void {
@@ -336,30 +488,6 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         ? el.value.trim()
         : '';
     }
-
-    // -- first-party analytics beacon ---------------------------------------
-
-    function track(type: string): void {
-      try {
-        const payload = JSON.stringify({
-          type,
-          page: location.pathname,
-          referrer: document.referrer || undefined,
-        });
-        if (!navigator.sendBeacon?.(`${apiUrl}/api/track`, new Blob([payload], { type: 'application/json' }))) {
-          void fetch(`${apiUrl}/api/track`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: payload,
-            keepalive: true,
-          }).catch(() => {});
-        }
-      } catch {
-        /* analytics must never break booking */
-      }
-    }
-
-    let startedTracked = false;
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -409,7 +537,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 
       submitBtn.disabled = true;
       const originalLabel = submitBtn.textContent;
-      submitBtn.textContent = 'Booking…';
+      submitBtn.textContent = 'Scheduling…';
 
       try {
         const res = await fetch(`${apiUrl}/api/booking`, {
@@ -421,9 +549,9 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
         if (res.status === 201) {
           track('booking_completed');
           successWhen.textContent = slotLabel(slot);
-          dateStep.hidden = true;
-          timeStep.hidden = true;
-          formStep.hidden = true;
+          pickView.hidden = true;
+          formView.hidden = true;
+          root.classList.add('bw--done');
           successEl.hidden = false;
           successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
@@ -431,13 +559,18 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
 
         if (res.status === 409) {
           selectedSlot = null;
-          formStep.hidden = true;
+          formView.hidden = true;
+          pickView.hidden = false;
           if (selectedDate) {
+            monthCache.delete(monthKey(viewYear, viewMonth));
             const fresh = await loadSlots(selectedDate);
-            const note = fresh.length
-              ? 'That time was just taken — sorry! Here are the latest open times.'
-              : 'That time was just taken and no other times are open that day. Please pick another day.';
-            setConflictNote(note);
+            setTimeStatus(
+              'info',
+              fresh.length
+                ? 'That time was just taken — sorry! Here are the latest open times.'
+                : 'That time was just taken and nothing else is open that day. Please pick another day.',
+            );
+            if (fresh.length) renderSlots(fresh);
           }
           return;
         }
@@ -458,20 +591,30 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
       }
     }
 
-    function setConflictNote(message: string): void {
-      timeStatus.hidden = false;
-      timeStatus.className = 'bw__status bw__status--info';
-      const note = document.createElement('p');
-      note.className = 'bw__conflict';
-      note.textContent = message;
-      timeStatus.textContent = '';
-      timeStatus.appendChild(note);
-      timeStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
     // -- go -----------------------------------------------------------------
 
-    renderDateChips();
+    prevBtn.addEventListener('click', () => {
+      if (!canGoPrev()) return;
+      viewMonth--;
+      if (viewMonth < 0) {
+        viewMonth = 11;
+        viewYear--;
+      }
+      void renderMonth();
+    });
+    nextBtn.addEventListener('click', () => {
+      if (!canGoNext()) return;
+      viewMonth++;
+      if (viewMonth > 11) {
+        viewMonth = 0;
+        viewYear++;
+      }
+      void renderMonth();
+    });
+
+    viewYear = today.getFullYear();
+    viewMonth = today.getMonth();
+    void renderMonth();
   }
 </script>
 
@@ -481,82 +624,196 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    padding: clamp(1.5rem, 4vw, 2.5rem);
     display: grid;
-    gap: 2rem;
+    grid-template-columns: 17rem 1fr;
+    min-height: 30rem;
+    overflow: hidden;
   }
 
-  .bw__step-title {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    font-size: 1.15rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .bw__step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.8rem;
-    height: 1.8rem;
-    border-radius: 50%;
-    background: var(--navy-800);
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 750;
-    flex: none;
-  }
-
-  .bw__tz {
-    color: var(--muted);
-    font-size: 0.92rem;
-    margin: 0 0 1rem;
-  }
-
-  .bw__dates,
-  .bw__times {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-
-  .bw__chip {
-    font: inherit;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--navy-800);
+  /* Info panel ------------------------------------------------------------ */
+  .bw__info {
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.75rem;
     background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: 999px;
-    padding: 0.55rem 1.1rem;
-    cursor: pointer;
-    transition: border-color 0.12s ease, background-color 0.12s ease,
-      color 0.12s ease;
   }
 
-  .bw__chip:hover {
-    border-color: var(--teal-500);
+  .bw__brand {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 0 0 0.35rem;
+  }
+
+  .bw__event {
+    font-size: 1.45rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .bw__meta {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .bw__meta li {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .bw__meta svg {
+    flex: none;
     color: var(--teal-600);
   }
 
-  .bw__chip.is-selected {
-    background: var(--teal-500);
-    border-color: var(--teal-500);
+  .bw__desc {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0;
+  }
+
+  /* Main area ------------------------------------------------------------- */
+  .bw__main {
+    padding: 2rem clamp(1.25rem, 3vw, 2.25rem);
+  }
+
+  .bw__heading {
+    font-size: 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .bw__pick-cols {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .bw--times-open .bw__pick-cols {
+    grid-template-columns: 1fr 13rem;
+  }
+
+  /* Calendar -------------------------------------------------------------- */
+  .bw__calendar {
+    max-width: 26rem;
+  }
+
+  .bw__month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+
+  .bw__month-label {
+    font-weight: 700;
+    color: var(--navy-800);
+  }
+
+  .bw__month-btn {
+    font: inherit;
+    font-size: 1.3rem;
+    line-height: 1;
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--teal-50);
+    color: var(--teal-600);
+    cursor: pointer;
+  }
+
+  .bw__month-btn:hover:not(:disabled) {
+    background: var(--teal-100);
+  }
+
+  .bw__month-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .bw__weekdays,
+  .bw__days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    text-align: center;
+  }
+
+  .bw__weekdays {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .bw__day {
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 3rem;
+    margin-inline: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--border);
+    cursor: default;
+    position: relative;
+  }
+
+  .bw__day:disabled {
+    color: #b9c6cf;
+  }
+
+  .bw__day.is-available {
+    background: var(--teal-50);
+    color: var(--teal-600);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .bw__day.is-available:hover {
+    background: var(--teal-100);
+  }
+
+  .bw__day.is-selected {
+    background: var(--teal-600);
     color: #fff;
   }
 
-  .bw__status {
-    color: var(--muted);
-    font-size: 0.97rem;
-    margin-bottom: 0.75rem;
+  .bw__day.is-today::after {
+    content: '';
+    position: absolute;
+    bottom: 0.3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
   }
 
-  .bw__status--error {
+  .bw__cal-status {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 1rem 0 0;
+  }
+
+  .bw__cal-status--error {
     color: var(--danger);
   }
 
-  .bw__status--loading::before {
+  .bw__cal-status--loading::before,
+  .bw__times-status--loading::before {
     content: '';
     display: inline-block;
     width: 0.85em;
@@ -575,6 +832,58 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     }
   }
 
+  /* Times column ---------------------------------------------------------- */
+  .bw__times-day {
+    font-weight: 700;
+    color: var(--navy-800);
+    margin: 0 0 0.9rem;
+  }
+
+  .bw__times {
+    display: grid;
+    gap: 0.5rem;
+    max-height: 21rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .bw__time {
+    font: inherit;
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: var(--teal-600);
+    background: var(--bg);
+    border: 1.5px solid var(--teal-500);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+
+  .bw__time:hover {
+    background: var(--teal-600);
+    border-color: var(--teal-600);
+    color: #fff;
+  }
+
+  .bw__times-status {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .bw__times-status--error {
+    color: var(--danger);
+  }
+
+  .bw__times-status--info {
+    color: var(--navy-800);
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.8rem;
+  }
+
   .bw__retry {
     font: inherit;
     font-weight: 650;
@@ -586,14 +895,17 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     text-decoration: underline;
   }
 
-  .bw__conflict {
-    margin: 0 0 0.75rem;
-    color: var(--navy-800);
+  /* Form view ------------------------------------------------------------- */
+  .bw__back {
+    font: inherit;
+    font-weight: 650;
+    color: var(--teal-600);
     background: var(--teal-50);
     border: 1px solid var(--teal-100);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    font-weight: 550;
+    border-radius: 999px;
+    padding: 0.35rem 0.95rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
   }
 
   .bw__chosen {
@@ -611,12 +923,6 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     grid-template-columns: 1fr 1fr;
     gap: 1rem 1.25rem;
     margin-bottom: 1.25rem;
-  }
-
-  @media (max-width: 640px) {
-    .bw__grid {
-      grid-template-columns: 1fr;
-    }
   }
 
   .bw__field--full {
@@ -652,7 +958,7 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
   .bw__field select:focus {
     outline: none;
     border-color: var(--teal-500);
-    box-shadow: 0 0 0 3px rgba(15, 163, 163, 0.18);
+    box-shadow: 0 0 0 3px rgba(13, 109, 163, 0.18);
   }
 
   .bw__field input[aria-invalid='true'],
@@ -699,9 +1005,10 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
     cursor: wait;
   }
 
+  /* Success --------------------------------------------------------------- */
   .bw__success {
     text-align: center;
-    padding-block: 1.5rem;
+    padding-block: 2.5rem;
   }
 
   .bw__success-icon {
@@ -726,5 +1033,33 @@ const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080'
   .bw__success p:last-child {
     color: var(--muted);
     margin: 0;
+  }
+
+  /* Responsive ------------------------------------------------------------ */
+  @media (max-width: 860px) {
+    .bw {
+      grid-template-columns: 1fr;
+    }
+
+    .bw__info {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 1.25rem;
+    }
+
+    .bw--times-open .bw__pick-cols {
+      grid-template-columns: 1fr;
+    }
+
+    .bw__times {
+      max-height: none;
+      grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bw__grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

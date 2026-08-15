@@ -1,5 +1,12 @@
 ---
 import Logo from './Logo.astro';
+
+const navLinks = [
+  { href: '/services', label: 'Services' },
+  { href: '/specialties', label: 'Specialties' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
 ---
 
 <header class="site-header">
@@ -8,17 +15,101 @@ import Logo from './Logo.astro';
       <Logo />
     </a>
 
-    <nav aria-label="Main">
+    <nav aria-label="Main" class="site-header__desktop">
       <ul class="site-header__nav">
-        <li><a href="/#services">Services</a></li>
-        <li><a href="/#how-it-works">How it works</a></li>
-        <li><a href="/#faq">FAQ</a></li>
+        {navLinks.map((link) => (
+          <li><a href={link.href}>{link.label}</a></li>
+        ))}
       </ul>
     </nav>
 
     <a href="/book" class="btn btn--primary site-header__cta">Book a call</a>
+
+    <button
+      type="button"
+      class="site-header__toggle"
+      id="menu-toggle"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="visually-hidden">Menu</span>
+      <svg
+        class="site-header__icon site-header__icon--open"
+        viewBox="0 0 24 24"
+        width="26"
+        height="26"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M3 6h18M3 12h18M3 18h18"></path>
+      </svg>
+      <svg
+        class="site-header__icon site-header__icon--close"
+        viewBox="0 0 24 24"
+        width="26"
+        height="26"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M5 5l14 14M19 5 5 19"></path>
+      </svg>
+    </button>
   </div>
+
+  <nav id="mobile-menu" class="site-header__mobile" aria-label="Main menu" hidden>
+    <ul>
+      {navLinks.map((link) => (
+        <li><a href={link.href}>{link.label}</a></li>
+      ))}
+      <li class="site-header__mobile-cta">
+        <a href="/book" class="btn btn--primary">Book a call</a>
+      </li>
+    </ul>
+  </nav>
 </header>
+
+<script>
+  const toggle = document.getElementById('menu-toggle');
+  const panel = document.getElementById('mobile-menu');
+
+  if (toggle instanceof HTMLButtonElement && panel instanceof HTMLElement) {
+    const setOpen = (open: boolean): void => {
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', () => {
+      setOpen(panel.hidden);
+    });
+
+    // Close after a navigation choice.
+    panel.addEventListener('click', (event) => {
+      if (event.target instanceof Element && event.target.closest('a')) {
+        setOpen(false);
+      }
+    });
+
+    // ESC closes the menu and returns focus to the toggle.
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !panel.hidden) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+
+    // If the viewport grows past the mobile breakpoint, reset the panel.
+    const mq = window.matchMedia('(min-width: 821px)');
+    mq.addEventListener('change', (event) => {
+      if (event.matches) setOpen(false);
+    });
+  }
+</script>
 
 <style>
   .site-header {
@@ -68,8 +159,95 @@ import Logo from './Logo.astro';
     font-size: 0.95rem;
   }
 
-  @media (max-width: 640px) {
-    .site-header__nav {
+  /* Hamburger toggle -------------------------------------------------------- */
+
+  .site-header__toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--navy-800);
+    cursor: pointer;
+  }
+
+  .site-header__toggle:hover {
+    border-color: var(--teal-500);
+    color: var(--teal-600);
+  }
+
+  .site-header__icon--close {
+    display: none;
+  }
+
+  .site-header__toggle[aria-expanded='true'] .site-header__icon--open {
+    display: none;
+  }
+
+  .site-header__toggle[aria-expanded='true'] .site-header__icon--close {
+    display: block;
+  }
+
+  /* Mobile panel ------------------------------------------------------------ */
+
+  .site-header__mobile {
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .site-header__mobile ul {
+    list-style: none;
+    margin: 0;
+    padding: 0.75rem 1.25rem 1.25rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .site-header__mobile a:not(.btn) {
+    display: block;
+    padding: 0.7rem 0.5rem;
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 550;
+    border-radius: var(--radius);
+  }
+
+  .site-header__mobile a:not(.btn):hover {
+    background: var(--teal-50);
+    color: var(--teal-600);
+  }
+
+  .site-header__mobile-cta {
+    margin-top: 0.75rem;
+  }
+
+  .site-header__mobile-cta .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  @media (max-width: 820px) {
+    .site-header__desktop {
+      display: none;
+    }
+
+    .site-header__toggle {
+      display: inline-flex;
+    }
+  }
+
+  @media (min-width: 821px) {
+    .site-header__mobile {
+      display: none;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .site-header__cta {
       display: none;
     }
   }

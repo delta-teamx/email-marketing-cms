@@ -1,0 +1,173 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { PRACTICE_TYPES } from '@implenix/shared';
+
+/**
+ * Specialty-specific billing copy. Keyed by the PRACTICE_TYPES names from
+ * @implenix/shared (minus 'Other'), plus a few specialties we serve that the
+ * booking form groups under 'Other'.
+ */
+const blurbs: Record<string, string> = {
+  'Family medicine':
+    'Broad payer mix, preventive and problem visits in the same encounter, and constant E/M leveling scrutiny. We get modifier 25 splits right and keep wellness-visit claims from swallowing the sick-visit revenue.',
+  'Internal medicine':
+    'Chronic care management, transitional care, and annual wellness visits all have their own time, documentation, and billing-frequency rules. We capture the care-coordination revenue most practices leave unbilled.',
+  'Mental & behavioral health':
+    'Time-based CPT codes (90832–90837), session limits, and prior authorizations that expire mid-treatment. We track auth units per patient and code sessions to documented time, so claims stop bouncing.',
+  'Physical & occupational therapy':
+    'The 8-minute rule, Medicare therapy thresholds with the KX modifier, visit caps, and modifier 59 edits. We track units and authorizations per plan of care, so visits never outrun what payers will cover.',
+  'Chiropractic':
+    'Medicare pays only for active treatment — the AT modifier and medical-necessity documentation decide everything. We keep maintenance care clearly separated, so audits find nothing to claw back.',
+  'Pain management':
+    'Interventional procedures live and die by prior authorization and NCCI bundling edits. We secure auths before the procedure and bill injection levels, add-ons, and imaging guidance the way payers expect.',
+  'Podiatry':
+    'Routine foot care is excluded unless class findings and Q modifiers (Q7–Q9) justify it — the classic podiatry denial. We document systemic conditions correctly, so covered care actually gets paid as covered.',
+  'Dermatology':
+    'Lesion coding turns on size, count, technique, and pathology timing — and biopsies billed with an E/M invite modifier 25 reviews. We code destructions and excisions precisely, so high-volume days stay clean.',
+  'Cardiology':
+    'Diagnostic tests carry payer-specific bundling rules, imaging needs prior auth, and interventions have global periods that trap follow-up visits. We keep the technical and professional components straight.',
+  'Urgent care':
+    'Some payers want S9083 global codes, others want leveled E/M — often for the same visit type. High walk-in volume makes real-time eligibility essential; we verify at the front door and code per contract.',
+  'Laboratory':
+    'Panel bundling differs by payer, and every test needs a diagnosis that proves medical necessity. We manage standing orders, ICD-10 linkage, and payer-specific panel rules, so volume does not become write-offs.',
+  'Imaging center':
+    'Prior authorization is the number-one denial source in imaging. We confirm auths before the scan, split technical and professional components (TC/26) correctly, and chase the payer rules tied to accreditation.',
+  ENT:
+    'Nasal endoscopy bundling edits, allergy testing and immunotherapy unit rules, and audiology services with their own billing logic. We keep procedure combinations unbundled only when documentation supports it.',
+  Telehealth:
+    'Place-of-service codes 02 and 10, modifier 95, and coverage that varies by payer and by state — and changes yearly. We keep your telehealth claims aligned with each payer’s current rules, not last year’s.',
+  Rehabilitation:
+    'Multi-discipline plans of care, progress-note requirements on a payer clock, and per-diem versus fee-for-service billing by contract. We keep PT, OT, and speech claims coordinated instead of colliding.',
+};
+
+const specialties = [
+  ...PRACTICE_TYPES.filter((t) => t !== 'Other'),
+  'ENT',
+  'Telehealth',
+  'Rehabilitation',
+].map((name) => ({ name, blurb: blurbs[name] }));
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://implenix.net/' },
+    { '@type': 'ListItem', position: 2, name: 'Specialties', item: 'https://implenix.net/specialties' },
+  ],
+};
+---
+
+<Layout
+  title="Specialties We Bill For — Implenix"
+  description="Billing rules differ by specialty — time-based codes in mental health, the 8-minute rule in therapy, panel bundling in labs, prior auths in imaging. See the specialties Implenix works in daily."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+  </Fragment>
+
+  <!-- Page hero -->
+  <section class="page-hero">
+    <div class="container page-hero__inner">
+      <span class="kicker">Specialties</span>
+      <h1>Billing rules differ by specialty. We work in yours daily.</h1>
+      <p>
+        A mental health practice loses money to expired authorizations; a
+        therapy clinic loses it to the 8-minute rule; a lab loses it to panel
+        bundling. Generic billing misses all of that. We bill by the rules
+        your specialty actually plays by.
+      </p>
+    </div>
+  </section>
+
+  <!-- Specialty cards -->
+  <section class="section">
+    <div class="container">
+      <div class="specialty-grid">
+        {specialties.map((s) => (
+          <article class="card">
+            <h2 class="specialty-card__title">{s.name}</h2>
+            <p>{s.blurb}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Don't see yours -->
+  <section class="section section--alt">
+    <div class="container missing">
+      <div class="section-head missing__head">
+        <span class="kicker">Not listed?</span>
+        <h2>Don&rsquo;t see your specialty?</h2>
+        <p>
+          This page is a sample, not a boundary. If denied claims show up in
+          your deposits, chances are we already bill for a practice like
+          yours — book a call and ask.
+        </p>
+      </div>
+      <p class="missing__cta">
+        <a href="/book" class="btn btn--primary btn--lg">Book a call</a>
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Page hero -------------------------------------------------------------- */
+  .page-hero {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, rgba(15, 163, 163, 0.14), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-hero__inner {
+    max-width: 50rem;
+    text-align: center;
+    padding-block: clamp(3rem, 7vw, 5.5rem);
+  }
+
+  .page-hero p {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Specialty grid ---------------------------------------------------------- */
+  .specialty-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 1020px) {
+    .specialty-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .specialty-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .specialty-card__title {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .specialty-grid p {
+    font-size: 0.97rem;
+  }
+
+  /* Don't see yours --------------------------------------------------------- */
+  .missing__head {
+    margin-bottom: 0;
+  }
+
+  .missing__cta {
+    text-align: center;
+    margin: 2rem 0 0;
+  }
+</style>
