@@ -36,15 +36,18 @@ export async function getOpenSlots(dateISO: string, visitorTz: string): Promise<
   for (const ownerDate of ownerDates) {
     const day = DateTime.fromISO(ownerDate, { zone: B.timezone });
     if (!B.days.includes(day.weekday)) continue;
-    let cursor = day.set({ hour: B.dayStart, minute: 0 });
-    const dayEnd = day.set({ hour: B.dayEnd, minute: 0 });
-    while (cursor.plus({ minutes: B.slotMinutes }) <= dayEnd) {
-      const end = cursor.plus({ minutes: B.slotMinutes });
-      const inVisitorDay = cursor >= visitorDayStart && cursor <= visitorDayEnd;
-      if (inVisitorDay && cursor >= earliestStart) candidates.push({ start: cursor, end });
-      cursor = cursor.plus({ minutes: B.slotMinutes });
+    for (const window of B.windows) {
+      let cursor = day.set({ hour: window.start, minute: 0 });
+      const windowEnd = day.set({ hour: window.end, minute: 0 });
+      while (cursor.plus({ minutes: B.slotMinutes }) <= windowEnd) {
+        const end = cursor.plus({ minutes: B.slotMinutes });
+        const inVisitorDay = cursor >= visitorDayStart && cursor <= visitorDayEnd;
+        if (inVisitorDay && cursor >= earliestStart) candidates.push({ start: cursor, end });
+        cursor = cursor.plus({ minutes: B.slotMinutes });
+      }
     }
   }
+  candidates.sort((a, b) => a.start.toMillis() - b.start.toMillis());
   if (candidates.length === 0) return [];
 
   const rangeMin = candidates[0].start.minus({ minutes: B.bufferMinutes });

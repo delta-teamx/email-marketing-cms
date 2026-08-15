@@ -36,8 +36,17 @@ export const env = {
 
   booking: {
     timezone: optional('BOOKING_TIMEZONE', 'America/New_York'),
-    dayStart: Number(optional('BOOKING_DAY_START', '9')),
-    dayEnd: Number(optional('BOOKING_DAY_END', '17')),
+    /**
+     * Bookable windows in the owner's timezone, as "start-end" hour pairs
+     * separated by commas, e.g. "10-14,15-18" = 10:00–14:00 and 15:00–18:00.
+     */
+    windows: optional('BOOKING_WINDOWS', '10-14,15-18')
+      .split(',')
+      .map((w) => {
+        const [start, end] = w.split('-').map(Number);
+        return { start, end };
+      })
+      .filter((w) => Number.isFinite(w.start) && Number.isFinite(w.end) && w.end > w.start),
     slotMinutes: Number(optional('BOOKING_SLOT_MINUTES', '30')),
     bufferMinutes: Number(optional('BOOKING_BUFFER_MINUTES', '15')),
     minNoticeHours: Number(optional('BOOKING_MIN_NOTICE_HOURS', '12')),
