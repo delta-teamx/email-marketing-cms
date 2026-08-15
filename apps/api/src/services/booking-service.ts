@@ -62,6 +62,54 @@ export async function getOpenSlots(dateISO: string, visitorTz: string): Promise<
     .map((c) => ({ start: c.start.toUTC().toISO()!, end: c.end.toUTC().toISO()! }));
 }
 
+/**
+ * Days in a visitor-local month (YYYY-MM) that have at least one open slot —
+ * powers the Calendly-style month grid. One free/busy query for the span.
+ */
+export async function getAvailableDays(monthISO: string, visitorTz: string): Promise<string[]> {
+  const monthStart = DateTime.fromISO(`${monthISO}-01`, { zone: visitorTz }).startOf('month');
+  if (!monthStart.isValid) throw Object.assign(new Error('bad_month'), { statusCode: 400 });
+  const monthEnd = monthStart.endOf('month');
+
+  const now = DateTime.utc();
+  if (monthEnd <= now) return [];
+  const earliestStart = now.plus({ hours: B.minNoticeHours });
+
+  const busy = await getBusyIntervals(
+    DateTime.max(monthStart, now).minus({ minutes: B.bufferMinutes }).toJSDate(),
+    monthEnd.plus({ minutes: B.bufferMinutes }).toJSDate(),
+  );
+
+  const days = new Set<string>();
+  const firstKey = monthStart.toISODate()!;
+  const lastKey = monthEnd.toISODate()!;
+  // Owner-local days overlapping the visitor month (±1 day for tz offsets).
+  let day = monthStart.setZone(B.timezone).startOf('day').minus({ days: 1 });
+  const last = monthEnd.setZone(B.timezone).endOf('day').plus({ days: 1 });
+  while (day <= last) {
+    if (B.days.includes(day.weekday)) {
+      for (const window of B.windows) {
+        let cursor = day.set({ hour: window.start, minute: 0 });
+        const windowEnd = day.set({ hour: window.end, minute: 0 });
+        while (cursor.plus({ minutes: B.slotMinutes }) <= windowEnd) {
+          const end = cursor.plus({ minutes: B.slotMinutes });
+          if (cursor >= earliestStart) {
+            const s = cursor.minus({ minutes: B.bufferMinutes });
+            const e = end.plus({ minutes: B.bufferMinutes });
+            if (!busy.some((b) => overlaps(s, e, b.start, b.end))) {
+              const visitorDay = cursor.setZone(visitorTz).toISODate()!;
+              if (visitorDay >= firstKey && visitorDay <= lastKey) days.add(visitorDay);
+            }
+          }
+          cursor = cursor.plus({ minutes: B.slotMinutes });
+        }
+      }
+    }
+    day = day.plus({ days: 1 });
+  }
+  return [...days].sort();
+}
+
 export interface CreateBookingOptions {
   source: 'landing' | 'dashboard';
   /** Defaults to the primary workspace (landing-page bookings). */

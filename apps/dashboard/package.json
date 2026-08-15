@@ -2,7 +2,7 @@
   "name": "@implenix/dashboard",
   "private": true,
   "version": "0.1.0",
-  "description": "marketing.implenix.net — AI email marketing campaign dashboard (React + Vite SPA)",
+  "description": "marketing.implenix.net — booking funnel, follow-ups, contracts & payments dashboard (React + Vite SPA)",
   "type": "module",
   "scripts": {
     "dev": "vite",

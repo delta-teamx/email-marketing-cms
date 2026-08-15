@@ -62,7 +62,7 @@ export function LoginPage() {
         </div>
         <p className="auth-sub">
           {mode === 'signin'
-            ? 'Sign in to manage your campaigns.'
+            ? 'Sign in to manage your booking funnel.'
             : 'Create an account — a workspace is provisioned for you automatically.'}
         </p>
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PRACTICE_TYPES, PATIENT_FLOW_OPTIONS } from '@implenix/shared';
 import {
   getOpenSlots,
+  getAvailableDays,
   createBooking,
   cancelBooking,
   SlotTakenError,
@@ -10,6 +11,11 @@ import {
 
 const slotsQuery = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  tz: z.string().min(1).max(64),
+});
+
+const daysQuery = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/),
   tz: z.string().min(1).max(64),
 });
 
@@ -25,6 +31,19 @@ export const bookingBody = z.object({
 });
 
 export function bookingRoutes(app: FastifyInstance): void {
+  app.get('/api/booking/days', async (req, reply) => {
+    const parsed = daysQuery.safeParse(req.query);
+    if (!parsed.success) return reply.code(400).send({ error: 'bad_request' });
+    try {
+      const days = await getAvailableDays(parsed.data.month, parsed.data.tz);
+      return { days };
+    } catch (err: any) {
+      if (err?.statusCode === 400) return reply.code(400).send({ error: 'bad_month' });
+      req.log.error(err, 'days failed');
+      return reply.code(502).send({ error: 'calendar_unavailable' });
+    }
+  });
+
   app.get('/api/booking/slots', async (req, reply) => {
     const parsed = slotsQuery.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: 'bad_request' });

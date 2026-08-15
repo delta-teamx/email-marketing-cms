@@ -293,80 +293,6 @@ a:hover {
   font-weight: 500;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.campaign-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  color: var(--text);
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-
-.campaign-card:hover {
-  text-decoration: none;
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.campaign-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.campaign-name {
-  font-size: 16px;
-}
-
-.campaign-desc {
-  color: var(--text-2);
-  font-size: 13px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.campaign-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.campaign-stats {
-  display: flex;
-  gap: 22px;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  margin-top: auto;
-}
-
-.quick-stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.quick-stat-value {
-  font-size: 17px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.quick-stat-label {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 /* --------------------------------------------------------------------------
    Buttons, pills, chips
    -------------------------------------------------------------------------- */
@@ -686,14 +612,6 @@ input[type='file'] {
   font-weight: 600;
 }
 
-.warmup-row {
-  align-items: flex-end;
-}
-
-.warmup-row .check-field {
-  padding-bottom: 9px;
-}
-
 /* --------------------------------------------------------------------------
    Tables
    -------------------------------------------------------------------------- */
@@ -905,53 +823,8 @@ input[type='file'] {
   font-size: 12px;
 }
 
-.status-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.mode-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.mode-option {
-  appearance: none;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-sunken);
-  color: var(--text-2);
-  font: inherit;
-  cursor: pointer;
-}
-
-.mode-option strong {
-  color: var(--text);
-}
-
-.mode-option span {
-  font-size: 12.5px;
-}
-
-.mode-option.active {
-  border-color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-
-.mode-option.active strong {
-  color: var(--accent);
-}
-
 /* --------------------------------------------------------------------------
-   Sequence editor
+   Follow-up sequence editor
    -------------------------------------------------------------------------- */
 
 .step-panel .panel-head h2 {
@@ -990,44 +863,37 @@ input[type='file'] {
   text-align: center;
 }
 
-.variant-list {
+.followup-group {
+  margin-top: 28px;
+}
+
+.followup-group-head {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
-.variant-card {
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.followups-banner {
+  margin-bottom: 12px;
 }
 
-.variant-card input,
-.variant-card textarea {
-  background: var(--panel);
-}
-
-.variant-disabled {
+.step-disabled {
   opacity: 0.65;
 }
 
-.variant-head {
+.step-foot {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.variant-head .check-field {
-  padding-bottom: 9px;
-}
-
-.variant-head-spacer {
-  flex: 1;
+.delay-unit {
+  width: auto;
+  padding: 5px 8px;
 }
 
 .merge-chips {
@@ -1043,38 +909,7 @@ input[type='file'] {
 }
 
 /* --------------------------------------------------------------------------
-   Templates
-   -------------------------------------------------------------------------- */
-
-.template-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 980px) {
-  .template-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.template-panel {
-  margin: 0 !important;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.template-panel .panel-head {
-  margin-bottom: 0;
-}
-
-.template-panel textarea {
-  flex: 1;
-}
-
-/* --------------------------------------------------------------------------
-   Leads import
+   CSV import
    -------------------------------------------------------------------------- */
 
 .import-drop {
@@ -1110,133 +945,8 @@ input[type='file'] {
 }
 
 /* --------------------------------------------------------------------------
-   Kanban
+   Activity / timeline
    -------------------------------------------------------------------------- */
-
-.kanban {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 12px;
-  align-items: flex-start;
-}
-
-.kanban-col {
-  flex: 0 0 240px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 70vh;
-}
-
-.kanban-terminal {
-  background: var(--bg-sunken);
-  opacity: 0.75;
-}
-
-.kanban-dragover {
-  border-color: var(--accent-strong);
-  background: var(--accent-soft);
-  opacity: 1;
-}
-
-.kanban-col-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 4px;
-}
-
-.kanban-col-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-2);
-}
-
-.kanban-count {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0 8px;
-}
-
-.kanban-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  min-height: 40px;
-}
-
-.kanban-card {
-  background: var(--panel-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 9px 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  cursor: grab;
-}
-
-.kanban-card:active {
-  cursor: grabbing;
-}
-
-.kanban-card-name {
-  font-weight: 600;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kanban-card-email {
-  color: var(--text-2);
-  font-size: 11.5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kanban-card-company {
-  color: var(--muted);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --------------------------------------------------------------------------
-   Activity
-   -------------------------------------------------------------------------- */
-
-.activity-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-.activity-grid .panel {
-  margin: 0;
-}
-
-@media (max-width: 1100px) {
-  .activity-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 .activity-list {
   list-style: none;
@@ -1346,13 +1056,10 @@ input[type='file'] {
   display: block;
 }
 
-.inbox-campaign {
+.inbox-contact-email {
   font-size: 12.5px;
   color: var(--text-2);
-}
-
-.inbox-campaign:hover {
-  color: var(--accent);
+  display: block;
 }
 
 .inbox-meta {
@@ -1396,6 +1103,207 @@ input[type='file'] {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.inbox-summary {
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.inbox-message-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.inbox-message-details summary:hover {
+  color: var(--text);
+}
+
+.inbox-message-details[open] summary {
+  margin-bottom: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   v2 widgets: tables, stat tiles, booking slots, contact picker, detail page
+   -------------------------------------------------------------------------- */
+
+.head-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.row-click {
+  cursor: pointer;
+}
+
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cell-sub {
+  font-size: 12px;
+}
+
+.stage-select {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.stat-bad {
+  color: var(--bad);
+}
+
+.stat-tiles-3 {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.funnel-note {
+  margin-top: 12px;
+}
+
+.slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.picker {
+  position: relative;
+}
+
+.picker-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 60;
+}
+
+.picker-item {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  gap: 1px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.picker-item:last-child {
+  border-bottom: none;
+}
+
+.picker-item:hover {
+  background: var(--accent-soft);
+}
+
+.picker-item-name {
+  font-weight: 600;
+}
+
+.picker-item-email {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.picker-empty {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.picker-chosen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.picker-chosen-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.picker-chosen-name {
+  font-weight: 600;
+}
+
+.picker-chosen-email {
+  color: var(--text-2);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-filter {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+.picker-tz {
+  align-self: flex-start;
+  padding: 8px 10px;
+  text-transform: none;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-grid .panel {
+  margin: 0;
+}
+
+.detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contract-body {
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 /* --------------------------------------------------------------------------
@@ -1752,7 +1660,7 @@ input[type='file'] {
     flex-direction: column;
   }
 
-  .mode-toggle {
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 

@@ -110,8 +110,8 @@ export function SuppressionPage() {
         <div>
           <h1>Suppression List</h1>
           <p className="page-sub">
-            Addresses here are never emailed by any campaign — unsubscribes, DNC replies, hard
-            bounces and complaints land here automatically and permanently.
+            Addresses here never receive follow-up emails — unsubscribes, do-not-contact replies,
+            hard bounces and complaints land here automatically and permanently.
           </p>
         </div>
         <button
@@ -157,7 +157,7 @@ export function SuppressionPage() {
         ) : rows.length === 0 && !error ? (
           <EmptyState
             title="No suppressed addresses"
-            hint="Unsubscribes and bounces will appear here automatically once campaigns run."
+            hint="Unsubscribes and bounces will appear here automatically as follow-up emails send."
           />
         ) : (
           <>

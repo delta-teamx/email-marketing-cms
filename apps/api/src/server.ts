@@ -11,6 +11,7 @@ import { contractRoutes } from './routes/contracts.js';
 import { paymentRoutes } from './routes/payments.js';
 import { trackRoutes } from './routes/track.js';
 import { agentActionRoutes } from './routes/agentActions.js';
+import { contactRoutes } from './routes/contact.js';
 
 export async function buildServer() {
   const app = Fastify({ logger: true, trustProxy: true });
@@ -42,6 +43,7 @@ export async function buildServer() {
   paymentRoutes(app);
   trackRoutes(app);
   agentActionRoutes(app);
+  contactRoutes(app);
 
   return app;
 }

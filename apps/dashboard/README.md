@@ -1,10 +1,19 @@
 # @implenix/dashboard
 
-The AI email marketing dashboard for **marketing.implenix.net** — a React + Vite
-single-page app. Sign in, create campaigns, paste your copy, import leads, and
-watch the agent work the pipeline. All reads/writes go straight to Supabase
-under row-level security; privileged actions (activate/pause, approve/reject
-agent drafts, test sends, stats) go through the Implenix API with the user's
+The Implenix operations dashboard for **marketing.implenix.net** — a React +
+Vite single-page app for the v2 booking-centric funnel. Contacts book intro
+calls (from the public site or from here), automated follow-up emails fire
+around each meeting, replies land in an approval inbox, contracts (BAA /
+service agreement) are e-signed, and payments are tracked per client.
+
+Pages: Dashboard (site + funnel + email analytics), Appointments (book, mark
+showed/no-show, cancel), Contacts (search, CSV import, detail + timeline),
+Follow-ups (the automated email sequence editor), Contracts (templates + sent
+contracts), Payments (manual ledger), Inbox (reply triage), Suppression.
+
+Ordinary reads/writes go straight to Supabase under row-level security;
+privileged actions (booking, outcomes, test sends, sending contracts,
+reminders, inbox replies, stats) go through the Implenix API with the user's
 Supabase access token.
 
 ## Local development
@@ -27,9 +36,11 @@ Other scripts (run with `-w apps/dashboard`): `build`, `preview`, `typecheck`.
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key — safe for the browser, RLS enforces access |
 | `VITE_API_URL` | Base URL of the Implenix API on Render (no trailing slash) |
 
-The database schema and RLS policies live in `supabase/migrations/0001_init.sql`.
-A workspace is auto-provisioned for every new auth user by a DB trigger, so
-sign-up needs no extra setup.
+The v2 schema and RLS policies live in
+`supabase/migrations/0004_v2_booking_funnel.sql` and
+`0005_contracts_payments.sql`. A workspace is auto-provisioned for every new
+auth user by a DB trigger (with a seeded follow-up sequence and contract
+templates), so sign-up needs no extra setup.
 
 ## Deploying to Netlify
 
@@ -42,7 +53,7 @@ This is a monorepo, so configure the Netlify site as:
 
 Add the three `VITE_*` environment variables in the Netlify UI. The
 `netlify.toml` includes the SPA redirect (`/* → /index.html 200`) so deep links
-like `/campaigns/:id` survive hard refreshes.
+like `/contacts/:id` survive hard refreshes.
 
 ## DNS
 
