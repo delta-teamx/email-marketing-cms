@@ -1,0 +1,453 @@
+---
+/**
+ * Contact page — info card + message form.
+ *
+ * API contract:
+ *   POST {PUBLIC_API_URL}/api/contact
+ *        JSON { name, email, phone?, message, company_website }
+ *        -> 2xx on success
+ *
+ * `company_website` is a honeypot: hidden from humans, so any value in it
+ * marks the submission as bot traffic. The API base URL is rendered
+ * server-side into a data attribute (same pattern as the booking widget).
+ */
+import Layout from '../layouts/Layout.astro';
+
+const apiUrl: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080';
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://implenix.net/' },
+    { '@type': 'ListItem', position: 2, name: 'Contact', item: 'https://implenix.net/contact' },
+  ],
+};
+
+const contactLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  name: 'Contact Implenix',
+  url: 'https://implenix.net/contact',
+  about: { '@id': 'https://implenix.net/#organization' },
+  isPartOf: { '@id': 'https://implenix.net/#website' },
+};
+---
+
+<Layout
+  title="Contact — Implenix"
+  description="Reach the Implenix team: send a message, email contact@implenix.net, or book a call. We reply within one business day. Based at 1879 NW 8th St, Miami, FL 33125."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(contactLd)} />
+  </Fragment>
+
+  <!-- Page hero -->
+  <section class="page-hero">
+    <div class="container page-hero__inner">
+      <span class="kicker">Contact</span>
+      <h1>Talk to a person, not a queue</h1>
+      <p>
+        Question about your billing, our pricing, or whether we cover your
+        specialty? Send a message — we reply within one business day.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact">
+      <!-- Left: contact info -->
+      <aside class="contact-info">
+        <div class="contact-info__card">
+          <h2>Get in touch</h2>
+
+          <div class="contact-info__row">
+            <h3>Email</h3>
+            <p>
+              <a href="mailto:contact@implenix.net">contact@implenix.net</a>
+            </p>
+          </div>
+
+          <div class="contact-info__row">
+            <h3>Office</h3>
+            <p>
+              1879 NW 8th St<br />
+              Miami, FL 33125<br />
+              United States
+            </p>
+          </div>
+
+          <div class="contact-info__row contact-info__row--cta">
+            <h3>Prefer to talk?</h3>
+            <p>
+              Pick a time that suits you — a free 30-minute call, no
+              obligation.
+            </p>
+            <a href="/book" class="btn btn--primary">Book a call</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right: contact form -->
+      <div class="contact-form-wrap" id="contact-form-root" data-api-url={apiUrl}>
+        <form class="contact-form" data-cf="form" novalidate>
+          <div class="contact-form__field">
+            <label for="cf-name">Name <span aria-hidden="true">*</span></label>
+            <input id="cf-name" name="name" type="text" autocomplete="name" required />
+            <p class="contact-form__error" data-error-for="name" hidden>Please enter your name.</p>
+          </div>
+
+          <div class="contact-form__field">
+            <label for="cf-email">Email <span aria-hidden="true">*</span></label>
+            <input id="cf-email" name="email" type="email" autocomplete="email" required />
+            <p class="contact-form__error" data-error-for="email" hidden>Please enter a valid email address.</p>
+          </div>
+
+          <div class="contact-form__field">
+            <label for="cf-phone">Phone <span class="contact-form__optional">(optional)</span></label>
+            <input id="cf-phone" name="phone" type="tel" autocomplete="tel" />
+          </div>
+
+          <div class="contact-form__field">
+            <label for="cf-message">Message <span aria-hidden="true">*</span></label>
+            <textarea
+              id="cf-message"
+              name="message"
+              rows="6"
+              required
+              placeholder="Tell us about your practice and what you need help with…"></textarea>
+            <p class="contact-form__error" data-error-for="message" hidden>Please enter a message.</p>
+          </div>
+
+          <!-- Honeypot: invisible to humans; bots that fill it get filtered. -->
+          <div class="visually-hidden" aria-hidden="true">
+            <label for="cf-company-website">Company website</label>
+            <input
+              id="cf-company-website"
+              name="company_website"
+              type="text"
+              tabindex="-1"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="contact-form__alert" data-cf="alert" role="alert" hidden></div>
+
+          <button type="submit" class="btn btn--primary btn--lg contact-form__submit" data-cf="submit">
+            Send message
+          </button>
+        </form>
+
+        <div class="contact-form__success" data-cf="success" hidden>
+          <span class="contact-form__success-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6 9 17l-5-5"></path>
+            </svg>
+          </span>
+          <h2>Message sent</h2>
+          <p>We&rsquo;ll get back to you within one business day.</p>
+        </div>
+
+        <noscript>
+          <p class="contact-form__alert">
+            This form needs JavaScript. If you can't enable it, email us at
+            <a href="mailto:contact@implenix.net">contact@implenix.net</a>.
+          </p>
+        </noscript>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const root = document.getElementById('contact-form-root');
+  if (root instanceof HTMLElement) initContactForm(root);
+
+  function initContactForm(root: HTMLElement): void {
+    const apiUrl = (root.dataset.apiUrl ?? '').replace(/\/+$/, '');
+
+    const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => {
+      const el = root.querySelector<T>(`[data-cf="${sel}"]`);
+      if (!el) throw new Error(`contact form: missing element "${sel}"`);
+      return el;
+    };
+
+    const form = $<HTMLFormElement>('form');
+    const submitBtn = $<HTMLButtonElement>('submit');
+    const alertEl = $('alert');
+    const successEl = $('success');
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function fieldValue(name: string): string {
+      const el = form.elements.namedItem(name);
+      return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        ? el.value.trim()
+        : '';
+    }
+
+    function fieldError(name: string, show: boolean): void {
+      const err = root.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+      const input = form.elements.namedItem(name);
+      if (err) err.hidden = !show;
+      if (input instanceof HTMLElement) {
+        input.setAttribute('aria-invalid', String(show));
+      }
+    }
+
+    function showAlert(message: string): void {
+      alertEl.hidden = false;
+      alertEl.textContent = message;
+    }
+
+    function hideAlert(): void {
+      alertEl.hidden = true;
+      alertEl.textContent = '';
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void submitMessage();
+    });
+
+    async function submitMessage(): Promise<void> {
+      hideAlert();
+
+      const name = fieldValue('name');
+      const email = fieldValue('email');
+      const phone = fieldValue('phone');
+      const message = fieldValue('message');
+
+      const checks: Array<[string, boolean]> = [
+        ['name', name.length > 0],
+        ['email', EMAIL_RE.test(email)],
+        ['message', message.length > 0],
+      ];
+      let allOk = true;
+      for (const [field, ok] of checks) {
+        fieldError(field, !ok);
+        if (!ok) allOk = false;
+      }
+      if (!allOk) return;
+
+      const payload: Record<string, string> = {
+        name,
+        email,
+        message,
+        company_website: fieldValue('company_website'),
+      };
+      if (phone) payload.phone = phone;
+
+      submitBtn.disabled = true;
+      const originalLabel = submitBtn.textContent;
+      submitBtn.textContent = 'Sending…';
+
+      try {
+        const res = await fetch(`${apiUrl}/api/contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          form.hidden = true;
+          successEl.hidden = false;
+          successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        showAlert(
+          "We couldn't send your message. Please check your details and try again — everything you typed is still here.",
+        );
+      } catch {
+        showAlert(
+          "We couldn't reach the server. Please check your connection and try again — everything you typed is still here.",
+        );
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    }
+  }
+</script>
+
+<style>
+  /* Page hero -------------------------------------------------------------- */
+  .page-hero {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, rgba(15, 163, 163, 0.14), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-hero__inner {
+    max-width: 50rem;
+    text-align: center;
+    padding-block: clamp(3rem, 7vw, 5.5rem);
+  }
+
+  .page-hero p {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Two-column layout ------------------------------------------------------- */
+  .contact {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  @media (max-width: 820px) {
+    .contact {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Info card --------------------------------------------------------------- */
+  .contact-info__card {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  .contact-info__card h2 {
+    font-size: 1.35rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .contact-info__row {
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .contact-info__row h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal-600);
+    margin-bottom: 0.4rem;
+  }
+
+  .contact-info__row p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .contact-info__row--cta {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .contact-info__row--cta p {
+    margin-bottom: 1rem;
+  }
+
+  /* Form --------------------------------------------------------------------- */
+  .contact-form {
+    display: grid;
+    gap: 1.1rem;
+  }
+
+  .contact-form__field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+    color: var(--navy-800);
+  }
+
+  .contact-form__optional {
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .contact-form__field input,
+  .contact-form__field textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.85rem;
+  }
+
+  .contact-form__field input:focus,
+  .contact-form__field textarea:focus {
+    outline: none;
+    border-color: var(--teal-500);
+    box-shadow: 0 0 0 3px rgba(15, 163, 163, 0.18);
+  }
+
+  .contact-form__field input[aria-invalid='true'],
+  .contact-form__field textarea[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+
+  .contact-form__field textarea {
+    resize: vertical;
+  }
+
+  .contact-form__error {
+    color: var(--danger);
+    font-size: 0.88rem;
+    margin: 0.35rem 0 0;
+  }
+
+  .contact-form__alert {
+    color: var(--danger);
+    background: #fbeeeb;
+    border: 1px solid #eed4cd;
+    border-radius: var(--radius);
+    padding: 0.85rem 1.1rem;
+    font-weight: 550;
+  }
+
+  .contact-form__submit {
+    justify-self: start;
+  }
+
+  .contact-form__submit:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  /* Success ------------------------------------------------------------------ */
+  .contact-form__success {
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: clamp(2rem, 5vw, 3rem);
+  }
+
+  .contact-form__success h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-form__success p {
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .contact-form__success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: var(--teal-100);
+    color: var(--teal-600);
+    margin-bottom: 1rem;
+  }
+</style>

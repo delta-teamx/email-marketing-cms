@@ -1,0 +1,251 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const values = [
+  {
+    title: 'Every denial worked',
+    body: 'A denial is not a write-off; it is a claim that needs more work. Our default is to trace every denial to its root cause, appeal it, and fix the process so it stops recurring. Write-offs happen only when they are genuinely justified — and documented.',
+  },
+  {
+    title: 'Transparency by default',
+    body: 'You should never have to ask twice to see your own numbers. Monthly reporting covers charges, collections, denial reasons, and AR aging — and a named contact answers "where is this claim?" any day of the month.',
+  },
+  {
+    title: 'Your systems, not ours',
+    body: 'We work inside your existing EHR and practice management software with appropriately scoped access. No data migration, no proprietary platform, no lock-in — your data stays yours, always.',
+  },
+  {
+    title: 'Aligned incentives',
+    body: 'We price as a percentage of collections, so our revenue only exists when yours does. When a claim sits unpaid, it costs us too — which is exactly the pressure a billing partner should feel.',
+  },
+];
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://implenix.net/' },
+    { '@type': 'ListItem', position: 2, name: 'About', item: 'https://implenix.net/about' },
+  ],
+};
+
+const aboutLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About Implenix',
+  url: 'https://implenix.net/about',
+  about: { '@id': 'https://implenix.net/#organization' },
+  isPartOf: { '@id': 'https://implenix.net/#website' },
+};
+---
+
+<Layout
+  title="About Implenix"
+  description="Implenix is a billing-first team serving independent US practices: every denial worked, transparent reporting, your systems not ours, and pricing as a percentage of collections. Based in Miami, FL."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(aboutLd)} />
+  </Fragment>
+
+  <!-- Page hero -->
+  <section class="page-hero">
+    <div class="container page-hero__inner">
+      <span class="kicker">About us</span>
+      <h1>About Implenix</h1>
+      <p>
+        A billing-first team, built for independent US practices — because the
+        people who deliver care should not have to fight for payment too.
+      </p>
+    </div>
+  </section>
+
+  <!-- Our story -->
+  <section class="section">
+    <div class="container story">
+      <span class="kicker">Our story</span>
+      <h2>Built around one job: getting practices paid</h2>
+      <p>
+        Implenix exists because of a pattern we kept seeing in independent
+        practices: clinicians doing excellent work, then losing a meaningful
+        share of the revenue for it — to eligibility surprises, coding
+        errors, denials nobody had time to appeal, and receivables that aged
+        quietly until they were unrecoverable. Billing was always somebody's
+        second job, and the deposits showed it.
+      </p>
+      <p>
+        So we made it our only job. Implenix is a revenue cycle management
+        company based in Miami, Florida, serving practices across the United
+        States. We do one thing — medical billing, end to end — and we do it
+        inside the systems practices already use, with reporting their owners
+        can actually read. No side products, no software to sell, no
+        distractions.
+      </p>
+      <p>
+        We deliberately focus on independent practices: solo providers, small
+        groups, clinics, labs, and imaging centers. They feel billing problems
+        the fastest and are served worst by billing companies built for
+        hospital systems. Our model — a percentage of collections, no
+        long-term lock-ins — only works if we collect well for practices like
+        these. That is by design.
+      </p>
+    </div>
+  </section>
+
+  <!-- What we believe -->
+  <section class="section section--alt">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">What we believe</span>
+        <h2>The principles we run billing by</h2>
+      </div>
+      <div class="values-grid">
+        {values.map((v) => (
+          <article class="card">
+            <h3>{v.title}</h3>
+            <p>{v.body}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- How we work -->
+  <section class="section">
+    <div class="container story">
+      <span class="kicker">How we work</span>
+      <h2>Skin in the game, from day one</h2>
+      <p>
+        We charge a percentage of monthly collections — you only pay when you
+        get paid. There are no per-claim fees, no setup surprises, and no
+        multi-year contracts; we earn the engagement every month. The exact
+        rate depends on your specialty, claim volume, and payer mix, and we
+        quote it plainly after a short review of your current billing.
+      </p>
+      <p>
+        Day to day, that looks like one accountable team running your entire
+        revenue cycle: eligibility verified before visits, claims coded and
+        scrubbed before submission, denials worked to root cause, AR chased on
+        a schedule, payments posted and reconciled, and patients supported
+        professionally on balance questions. You see all of it in monthly
+        reporting — and in your deposits. Read more about
+        <a href="/services">what each service covers</a>.
+      </p>
+
+      <div class="hipaa">
+        <h3>HIPAA, taken seriously</h3>
+        <p>
+          As a billing company, Implenix operates as a business associate
+          under HIPAA. We sign a Business Associate Agreement with every
+          client before any protected health information is exchanged, apply
+          the minimum-necessary standard to all PHI access, and maintain
+          administrative, physical, and technical safeguards — encrypted
+          systems, role-based access, audit logging, and workforce training.
+          The full detail is in our <a href="/hipaa-notice">HIPAA Notice</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <div class="container final-cta__inner">
+      <h2>Talk to the team that would run your billing</h2>
+      <p>
+        Book a free 30-minute call. We will look at how your practice bills
+        today and tell you plainly what we would do differently — no
+        obligation, no pressure.
+      </p>
+      <a href="/book" class="btn btn--light btn--lg">Book a call</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Page hero -------------------------------------------------------------- */
+  .page-hero {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, rgba(15, 163, 163, 0.14), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-hero__inner {
+    max-width: 50rem;
+    text-align: center;
+    padding-block: clamp(3rem, 7vw, 5.5rem);
+  }
+
+  .page-hero p {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Story sections ---------------------------------------------------------- */
+  .story {
+    max-width: 46rem;
+  }
+
+  .story h2 {
+    margin-bottom: 1.25rem;
+  }
+
+  .story p {
+    color: var(--muted);
+  }
+
+  /* Values ------------------------------------------------------------------ */
+  .values-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    max-width: 56rem;
+    margin-inline: auto;
+  }
+
+  @media (max-width: 720px) {
+    .values-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* HIPAA note -------------------------------------------------------------- */
+  .hipaa {
+    margin-top: 2.5rem;
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+  }
+
+  .hipaa h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .hipaa p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  /* Final CTA -------------------------------------------------------------- */
+  .final-cta {
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+  }
+
+  .final-cta__inner {
+    text-align: center;
+    padding-block: clamp(3.5rem, 8vw, 5.5rem);
+    max-width: 42rem;
+  }
+
+  .final-cta h2 {
+    color: #fff;
+  }
+
+  .final-cta p {
+    color: var(--navy-100);
+    font-size: 1.15rem;
+    margin-bottom: 2rem;
+  }
+</style>
