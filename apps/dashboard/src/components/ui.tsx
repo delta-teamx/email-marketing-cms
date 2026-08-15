@@ -69,16 +69,24 @@ export function EmptyState({
 }
 
 const PILL_CLASS: Record<string, string> = {
-  // campaign status
-  draft: 'pill-neutral',
-  active: 'pill-good',
-  paused: 'pill-warn',
-  archived: 'pill-muted',
-  // lead status
-  finished: 'pill-neutral',
-  suppressed: 'pill-bad',
-  // agent action status
+  // appointment outcome
   pending: 'pill-warn',
+  showed: 'pill-good',
+  no_show: 'pill-bad',
+  cancelled: 'pill-muted',
+  // contract status
+  draft: 'pill-neutral',
+  sent: 'pill-neutral',
+  viewed: 'pill-warn',
+  signed: 'pill-good',
+  declined: 'pill-bad',
+  voided: 'pill-muted',
+  // payment status
+  due: 'pill-warn',
+  paid: 'pill-good',
+  overdue: 'pill-bad',
+  waived: 'pill-muted',
+  // agent action status
   completed: 'pill-good',
   rejected: 'pill-bad',
 };

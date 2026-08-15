@@ -6,8 +6,13 @@ import { ConfirmProvider } from './hooks/confirm';
 import { Layout } from './components/Layout';
 import { Spinner, ErrorBanner } from './components/ui';
 import { LoginPage } from './pages/LoginPage';
-import { CampaignsPage } from './pages/CampaignsPage';
-import { CampaignDetailPage } from './pages/CampaignDetailPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { AppointmentsPage } from './pages/AppointmentsPage';
+import { ContactsPage } from './pages/ContactsPage';
+import { ContactDetailPage } from './pages/ContactDetailPage';
+import { FollowupsPage } from './pages/FollowupsPage';
+import { ContractsPage } from './pages/ContractsPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 import { InboxPage } from './pages/InboxPage';
 import { SuppressionPage } from './pages/SuppressionPage';
 
@@ -55,9 +60,13 @@ export function App() {
                   </RequireAuth>
                 }
               >
-                <Route path="/" element={<CampaignsPage />} />
-                <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
-                <Route path="/campaigns/:id/:tab" element={<CampaignDetailPage />} />
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/appointments" element={<AppointmentsPage />} />
+                <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/contacts/:id" element={<ContactDetailPage />} />
+                <Route path="/followups" element={<FollowupsPage />} />
+                <Route path="/contracts" element={<ContractsPage />} />
+                <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/suppression" element={<SuppressionPage />} />
               </Route>
